@@ -1,0 +1,9 @@
+activar entorno virtual en cd backend
+
+venv\Scripts\activate
+
+probar main.py dentro del venv
+uvicorn main:app --reload
+
+cd frontend
+npm start

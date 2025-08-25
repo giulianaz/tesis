@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Registro from "./components/registro";
 import Login from "./components/login";
 import Home from "./components/home";
+import Curso from "./components/curso"; // <-- Nuevo componente
 import "./App.css";
 
 function App() {
@@ -12,6 +13,7 @@ function App() {
         <Route path="/registro" element={<Registro />} />
         <Route path="/login" element={<Login />} />
         <Route path="/" element={<Home />} />
+        <Route path="/curso/:idCurso" element={<Curso />} /> {/* <-- Ruta dinámica */}
       </Routes>
     </Router>
   );

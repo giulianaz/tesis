@@ -16,21 +16,25 @@ const Navbar = () => {
   if (!usuario) return null; // Si no hay usuario, no mostramos navbar
 
   return (
-    <nav className="navbar">
-      <div className="navbar-left">
-        <span
-          className="usuario-nombre"
-          onClick={() => setShowDropdown(!showDropdown)}
-        >
-          {usuario.nombre} ▼
-        </span>
-        {showDropdown && (
-          <div className="dropdown">
-            <button onClick={handleLogout}>Cerrar sesión</button>
-          </div>
-        )}
-      </div>
-    </nav>
+        <nav className="navbar">
+        <div className="navbar-left">
+            <a href="/"><span className="pagina-nombre">AI Want to Teach</span></a>
+        </div>
+        <div className="navbar-right">
+            <span
+            className="usuario-nombre"
+            onClick={() => setShowDropdown(!showDropdown)}
+            >
+            {usuario.nombre} ▼
+            </span>
+            {showDropdown && (
+            <div className="dropdown">
+                <button onClick={handleLogout}>Cerrar sesión</button>
+            </div>
+            )}
+        </div>
+        </nav>
+
   );
 };
 

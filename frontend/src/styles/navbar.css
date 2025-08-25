@@ -1,11 +1,25 @@
 .navbar {
-
   padding: 10px 20px;
   background-color: #4f46e5;
   color: white;
   display: flex;
-  justify-content: flex-start;
+  justify-content: space-between; /* Separar izquierda y derecha */
   align-items: center;
+  position: relative;
+}
+
+.navbar-left .pagina-nombre {
+  font-weight: bold;
+  font-size: 1.2rem;
+}
+
+.navbar-left a{
+    text-decoration: none;
+    color: white;
+}
+
+.navbar-right {
+  position: relative;
 }
 
 .usuario-nombre {
@@ -15,11 +29,14 @@
 
 .dropdown {
   position: absolute;
+  right: 0; /* Para que quede alineado a la derecha */
   background-color: white;
   color: black;
   margin-top: 5px;
   border: 1px solid #ccc;
   border-radius: 5px;
+  min-width: 120px;
+  z-index: 1000;
 }
 
 .dropdown button {

@@ -4,11 +4,12 @@ from sqlalchemy.orm import Session
 from database import engine, Base, get_db
 from crud import crear_usuario, obtener_usuario_por_correo, login_usuario
 from typing import Optional
-from models import Curso, Unidad, Usuario
+from models import Curso, Unidad, Usuario, Evaluacion, Alternativa, VF, Desarrollo, IntentoEvaluacion
 from typing import List
 from sqlalchemy import select
 from pydantic import EmailStr, BaseModel, EmailStr, Field
 from passlib.context import CryptContext
+from datetime import datetime
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -336,3 +337,118 @@ def eliminar_perfil(usuario_id: int, db: Session = Depends(get_db)):
     db.delete(usuario)
     db.commit()
     return {"detail": f"Usuario '{usuario.nombre}' eliminado correctamente"}
+
+class EvaluacionOut(BaseModel):
+    id: int
+    nombre: str
+    descripcion: Optional[str]
+    nivel: Optional[int]
+
+    class Config:
+        orm_mode = True
+
+@app.get("/evaluaciones/unidad/{unidad_id}", response_model=List[EvaluacionOut])
+def obtener_evaluaciones_por_unidad(unidad_id: int, db: Session = Depends(get_db)):
+    evaluaciones = db.query(Evaluacion).filter(Evaluacion.id_unidad == unidad_id).all()
+    
+    if not evaluaciones:
+        raise HTTPException(status_code=404, detail="No se encontraron evaluaciones para esta unidad")
+    
+    return evaluaciones
+
+
+# Modelo de salida
+class IntentoEvaluacionOut(BaseModel):
+    puntaje_obtenido: int
+    fecha: Optional[datetime] = None  # ✅ ahora permite null
+    retroalimentacion: Optional[str]
+
+    class Config:
+        orm_mode = True
+
+@app.get("/intento_evaluacion/{id_evaluacion}", response_model=IntentoEvaluacionOut)
+def obtener_intento_por_evaluacion(id_evaluacion: int, db: Session = Depends(get_db)):
+    intento = db.query(IntentoEvaluacion).filter(IntentoEvaluacion.id_evaluacion == id_evaluacion).first()
+    
+    if not intento:
+        raise HTTPException(status_code=404, detail="No existe intento para esta evaluación")
+    
+    return intento
+
+# Schemas de salida
+class PreguntaAlternativaOut(BaseModel):
+    id: int
+    enunciado: str
+    opciones: dict
+
+    class Config:
+        orm_mode = True
+
+class PreguntaVFOut(BaseModel):
+    id: int
+    enunciado: str
+
+    class Config:
+        orm_mode = True
+
+class PreguntaDesarrolloOut(BaseModel):
+    id: int
+    enunciado: str
+
+    class Config:
+        orm_mode = True
+
+# Nuevo schema que incluye info de la evaluación
+class PreguntasEvaluacionOut(BaseModel):
+    id_evaluacion: int
+    nombre: str
+    descripcion: Optional[str] = None
+    nivel: Optional[int] = None
+    id_curso: Optional[int] = None      # <-- agregado
+    preguntas_alternativas: List[PreguntaAlternativaOut] = []
+    preguntas_vf: List[PreguntaVFOut] = []
+    preguntas_desarrollo: List[PreguntaDesarrolloOut] = []
+
+    class Config:
+        orm_mode = True
+
+@app.get("/preguntas/evaluacion/{id_evaluacion}", response_model=PreguntasEvaluacionOut)
+def obtener_preguntas_por_evaluacion(id_evaluacion: int, db: Session = Depends(get_db)):
+    evaluacion = db.query(Evaluacion).filter(Evaluacion.id == id_evaluacion).first()
+    if not evaluacion:
+        raise HTTPException(status_code=404, detail="Evaluación no encontrada")
+
+    # Preguntas de alternativas
+    alternativas = db.query(Alternativa).filter(Alternativa.id_evaluacion == id_evaluacion).all()
+    preguntas_alternativas = [
+        PreguntaAlternativaOut(
+            id=a.id,
+            enunciado=a.enunciado,
+            opciones={
+                "a": a.respuesta_a,
+                "b": a.respuesta_b,
+                "c": a.respuesta_c,
+                "d": a.respuesta_d
+            }
+        )
+        for a in alternativas
+    ]
+
+    # Preguntas verdadero/falso
+    vfs = db.query(VF).filter(VF.id_evaluacion == id_evaluacion).all()
+    preguntas_vf = [PreguntaVFOut(id=v.id, enunciado=v.enunciado) for v in vfs]
+
+    # Preguntas desarrollo
+    desarrollos = db.query(Desarrollo).filter(Desarrollo.id_evaluacion == id_evaluacion).all()
+    preguntas_desarrollo = [PreguntaDesarrolloOut(id=d.id, enunciado=d.enunciado) for d in desarrollos]
+
+    return PreguntasEvaluacionOut(
+        id_evaluacion=id_evaluacion,
+        nombre=evaluacion.nombre,
+        descripcion=evaluacion.descripcion,
+        nivel=evaluacion.nivel,
+        id_curso=evaluacion.unidad.curso.id if evaluacion.unidad and evaluacion.unidad.curso else None,  # <-- agregado
+        preguntas_alternativas=preguntas_alternativas,
+        preguntas_vf=preguntas_vf,
+        preguntas_desarrollo=preguntas_desarrollo
+    )

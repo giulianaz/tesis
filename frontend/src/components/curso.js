@@ -16,7 +16,9 @@ const Curso = () => {
   const [newUnidadNombre, setNewUnidadNombre] = useState("");
   const [showCrearUnidadForm, setShowCrearUnidadForm] = useState(false);
   const [nuevaUnidadNombre, setNuevaUnidadNombre] = useState("");
+  const [evaluaciones, setEvaluaciones] = useState([]);
 
+  // Cargar curso y unidades
   useEffect(() => {
     const usuario = localStorage.getItem("usuario");
     if (!usuario) {
@@ -57,6 +59,46 @@ const Curso = () => {
 
     fetchCurso();
   }, [idCurso, navigate]);
+
+  // Cargar evaluaciones y sus intentos
+  useEffect(() => {
+    if (!selectedUnidad) return;
+
+    const fetchEvaluacionesConIntentos = async () => {
+      try {
+        const evalRes = await fetch(`http://localhost:8000/evaluaciones/unidad/${selectedUnidad}`);
+        if (!evalRes.ok) {
+          console.error("Error al traer evaluaciones:", evalRes.statusText);
+          setEvaluaciones([]);
+          return;
+        }
+        const evaluacionesData = await evalRes.json();
+
+        // Traer intento de cada evaluación individualmente
+        const evaluacionesConIntento = await Promise.all(
+          evaluacionesData.map(async (evalua) => {
+            try {
+              const intentoRes = await fetch(`http://localhost:8000/intento_evaluacion/${evalua.id}`);
+              if (intentoRes.ok) {
+                const intentoData = await intentoRes.json();
+                return { ...evalua, intento: intentoData };
+              }
+            } catch (err) {
+              console.error("Error al traer intento de evaluación", evalua.id, err);
+            }
+            return { ...evalua, intento: null }; // no hay intento
+          })
+        );
+
+        setEvaluaciones(evaluacionesConIntento);
+      } catch (err) {
+        console.error("Error general al traer evaluaciones:", err);
+        setEvaluaciones([]);
+      }
+    };
+
+    fetchEvaluacionesConIntentos();
+  }, [selectedUnidad]);
 
   const handleUnidadClick = (unidadId) => {
     setSelectedUnidad(unidadId);
@@ -210,28 +252,64 @@ const Curso = () => {
                     </button>
                   )}
                 </div>
-                   <div className='ver-cosas'>
-                    <div className="ver-botones">
-                            <div className="ver-botones">
-                                <Link to={``} className="ver-corpus">
-                                <img src={Evaluacion} alt="Ícono Foro" className="icono-evaluacion" />
-                                Nueva Evaluación</Link>
-                          </div>
-                    </div>
-                    <div className="ver-botones">
-                            <div className="ver-botones">
-                                <Link to={`/corpus/${selectedUnidad}`} className="ver-corpus">
-                                <img src={Docs} alt="Ícono Foro" className="icono-foro" />
-                                Material de clases</Link>
-                          </div>
-                    </div>
 
+                <div className='ver-cosas'>
+                  <div className="ver-botones">
+                    <Link to={``} className="ver-corpus">
+                      <img src={Evaluacion} alt="Ícono Evaluación" className="icono-evaluacion" />
+                      Nueva Evaluación
+                    </Link>
                   </div>
+                  <div className="ver-botones">
+                    <Link to={`/corpus/${selectedUnidad}`} className="ver-corpus">
+                      <img src={Docs} alt="Ícono Docs" className="icono-foro" />
+                      Material de clases
+                    </Link>
+                  </div>
+                </div>
+              </div>
+
+              <div className="evaluaciones-container">
+                {evaluaciones.length > 0 ? (
+                  evaluaciones.map(evalua => {
+                    const intento = evalua.intento;
+
+                    return (
+                      <div key={evalua.id} className="evaluacion-card">
+                        <div className="actividad-content" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div>
+                            <div className="actividad-nombre">{evalua.nombre}</div>
+                            <div className="actividad-descripcion">{evalua.descripcion}</div>
+                            <div className="actividad-nivel">
+                              Nivel: {evalua.nivel === 1 ? "Fácil" : evalua.nivel === 2 ? "Medio" : evalua.nivel === 3 ? "Difícil" : "N/A"}
+                            </div>
+                          </div>
+
+                          <div className="evaluacion-info" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px' }}>
+                            {intento ? (
+                              <>
+                                <span style={{ color: intento.puntaje_obtenido < 70 ? 'red' : '#2F7A99', fontWeight: 'bold' }}>
+                                  {intento.puntaje_obtenido}%
+                                </span>
+                                <Link to={`/evaluacion/${evalua.id}`} className="btn-ver-evaluacion">
+                                  Ver Evaluación
+                                </Link>
+                              </>
+                            ) : (
+                              <Link to={`/evaluacion/${evalua.id}`} className="btn-iniciar">Iniciar Evaluación</Link>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })
+                ) : (
+                  <p>No hay evaluaciones para esta unidad.</p>
+                )}
               </div>
 
             </div>
           )}
-
         </div>
       </div>
     </div>

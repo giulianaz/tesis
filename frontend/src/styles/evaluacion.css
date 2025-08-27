@@ -1,0 +1,124 @@
+.eva-container-home {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+}
+
+.eva-container-body {
+  width: 100%;
+  max-width: 800px;
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  margin-top: 20px;
+}
+
+.eva-title {
+  text-align: center;
+  font-size: 2rem;
+  margin-bottom: 10px;
+}
+
+.eva-subtitle {
+  font-size: 1.5rem;
+  margin-top: 20px;
+  margin-bottom: 10px;
+  color: #333;
+}
+
+.eva-mensaje {
+  color: red;
+  margin-bottom: 15px;
+  text-align: center;
+}
+
+.eva-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.eva-pregunta-card {
+  padding: 15px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background-color: #f9f9f9;
+}
+
+.eva-enunciado {
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+.eva-label {
+  display: block;
+  margin-bottom: 5px;
+  cursor: pointer;
+}
+
+.eva-radio {
+  margin-right: 8px;
+}
+
+.eva-textarea {
+  width: 100%;
+  padding: 8px;
+  font-size: 1rem;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  resize: vertical;
+}
+
+.eva-submit {
+  align-self: flex-end;
+  padding: 10px 20px;
+  background-color: #4f46e5;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.3s ease;
+}
+
+.eva-submit:hover {
+  background-color: #4338ca;
+}
+
+.eva-cargando {
+  text-align: center;
+  font-size: 1.2rem;
+  margin-top: 50px;
+}
+
+/* Título de la evaluación */
+.eva-title {
+  font-size: 28px;
+  font-weight: bold;
+  margin-bottom: 10px;
+  color: #2a2a72;
+}
+
+/* Descripción de la evaluación */
+.eva-descripcion {
+  font-size: 16px;
+  margin-bottom: 8px;
+  color: #333333;
+  line-height: 1.5;
+}
+
+/* Nivel de la evaluación */
+.eva-nivel {
+  font-size: 14px;
+  font-weight: 500;
+  color: #555555;
+  margin-bottom: 15px;
+}
+
+/* Mensaje de error o info */
+.eva-mensaje {
+  color: #d9534f;
+  margin-bottom: 15px;
+}

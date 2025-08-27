@@ -1608,3 +1608,128 @@ body.dark-mode .fechas-actividad input[type="date"] {
   height: 24px;
   filter: invert(1); /* Esto invierte los colores */
 }
+
+/* Contenedor general de cada evaluación */
+.evaluacion-card {
+  display: flex;
+  flex-direction: column;
+  background-color: #f8f9fa;
+  padding: 25px 30px;
+  margin: 10px 0;
+  border: 1px solid #dee2e6;
+  border-radius: 10px;
+  position: relative;
+  transition: transform 0.2s ease, box-shadow 0.3s ease;
+  font-family: 'Poppins', sans-serif;
+}
+
+body.dark-mode .evaluacion-card {
+  background-color: #0A1126;
+  border: 1px solid #172140;
+}
+
+/* Línea lateral color azul */
+.evaluacion-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  background: linear-gradient(180deg, #57CDFF, #2F7A99);
+  border-top-left-radius: 10px;
+  border-bottom-left-radius: 10px;
+}
+
+/* Contenido de la evaluación */
+.actividad-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.actividad-nombre {
+  font-weight: 600;
+  font-size: 18px;
+  margin-bottom: 5px;
+  color: #39003E;
+}
+body.dark-mode .actividad-nombre {
+  color: #F4F4F4;
+}
+
+.actividad-descripcion {
+  font-size: 14px;
+  color: #555;
+  margin-bottom: 5px;
+}
+body.dark-mode .actividad-descripcion {
+  color: #ccc;
+}
+
+.actividad-nivel {
+  font-size: 13px;
+  font-weight: 500;
+  color: #6C00AE;
+  margin-bottom: 5px;
+}
+
+/* Botón iniciar evaluación */
+.btn-iniciar {
+  padding: 8px 16px;
+  background: linear-gradient(to right, #4FCBFF, #2F7A99);
+  color: white;
+  border-radius: 50px;
+  font-weight: 600;
+  font-size: 14px;
+  text-decoration: none;
+  transition: transform 0.2s, opacity 0.3s;
+  box-shadow: 0px 2px 6px rgba(0,0,0,0.2);
+}
+
+.btn-iniciar:hover {
+  transform: scale(1.05);
+  opacity: 0.9;
+}
+
+/* Puntaje obtenido */
+.evaluacion-info span {
+  font-weight: bold;
+  font-size: 16px;
+  color: #2F7A99;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .actividad-content {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .evaluacion-info {
+    margin-top: 10px;
+  }
+
+  .btn-iniciar {
+    width: 100%;
+    text-align: center;
+  }
+}
+
+.btn-ver-evaluacion {
+  background-color: transparent; /* Fondo transparente */
+  border: 1px solid #2F7A99;   /* Borde azul */
+  color: #2F7A99;               /* Texto azul */
+  padding: 5px 10px;            /* Espaciado pequeño */
+  font-size: 0.85rem;           /* Texto un poco más pequeño */
+  border-radius: 4px;           /* Bordes ligeramente redondeados */
+  text-decoration: none;         /* Sin subrayado */
+  cursor: pointer;              
+  transition: all 0.2s ease;    /* Animación suave al pasar el mouse */
+}
+
+.btn-ver-evaluacion:hover {
+  background-color: #2F7A99;   /* Fondo azul al pasar el mouse */
+  color: white;                /* Texto blanco al pasar el mouse */
+}

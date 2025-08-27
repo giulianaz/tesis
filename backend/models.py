@@ -73,6 +73,7 @@ class Evaluacion(Base):
     preguntas_desarrollo = Column(Integer)
     preguntas_vf = Column(Integer)
     puntaje_total = Column(Integer)
+    nivel = Column(Integer, nullable=True)  # o Enum si prefieres categorías fijas
     id_unidad = Column(Integer, ForeignKey("unidad.id", ondelete="CASCADE"), nullable=False)
 
     unidad = relationship("Unidad", back_populates="evaluaciones")
@@ -149,6 +150,19 @@ class IntentoEvaluacion(Base):
     evaluacion = relationship("Evaluacion", back_populates="intentos")
     usuario = relationship("Usuario", back_populates="intentos")
 
+class Respuesta(Base):
+    __tablename__ = "respuesta"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    id_usuario = Column(Integer, ForeignKey("usuario.id", ondelete="CASCADE"), nullable=False)
+    id_evaluacion = Column(Integer, ForeignKey("evaluacion.id", ondelete="CASCADE"), nullable=False)
+    tipo_pregunta = Column(Enum("vf", "alternativa", "desarrollo", name="tipo_pregunta"), nullable=False)
+    id_pregunta = Column(Integer, nullable=False)  # ID de la pregunta, se valida según tipo_pregunta
+    respuesta_texto = Column(Text, nullable=True)  # Respuesta escrita (para desarrollo) o vacío en otras
+    correcta = Column(Integer, nullable=True)  # Opcional: para almacenar si fue correcta o puntaje obtenido
+    fecha = Column(DateTime, default=datetime.datetime.utcnow)
+
+    usuario = relationship("Usuario")
+    evaluacion = relationship("Evaluacion")
 
 
 # Crear tablas solo si ejecutas este archivo directamente

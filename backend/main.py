@@ -3,11 +3,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from database import engine, Base, get_db
 from crud import crear_usuario, obtener_usuario_por_correo, login_usuario
-from pydantic import BaseModel
 from typing import Optional
-from models import Curso, Unidad
+from models import Curso, Unidad, Usuario
 from typing import List
 from sqlalchemy import select
+from pydantic import EmailStr, BaseModel, EmailStr, Field
+from passlib.context import CryptContext
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 app = FastAPI()
 
@@ -193,3 +196,143 @@ def obtener_curso(curso_id: int, usuario_id: int = None, db: Session = Depends(g
         raise HTTPException(status_code=403, detail="No tienes permiso para ver este curso")
 
     return curso
+
+class UnidadCreate(BaseModel):
+    nombre: str
+    id_curso: int
+    assistant_id: Optional[str] = None
+    vector_id: Optional[str] = None
+
+class UnidadUpdate(BaseModel):
+    nombre: Optional[str] = None
+    assistant_id: Optional[str] = None
+    vector_id: Optional[str] = None
+
+class UnidadOut(BaseModel):
+    id: int
+    nombre: str
+    id_curso: int
+    assistant_id: Optional[str]
+    vector_id: Optional[str]
+
+    class Config:
+        orm_mode = True
+
+# -------------------------------
+# Crear unidad
+# -------------------------------
+@app.post("/unidades/", response_model=UnidadOut)
+def crear_unidad(unidad: UnidadCreate, db: Session = Depends(get_db)):
+    # Verificar que el curso exista
+    curso = db.query(Curso).filter(Curso.id == unidad.id_curso).first()
+    if not curso:
+        raise HTTPException(status_code=404, detail="Curso no encontrado")
+
+    nueva_unidad = Unidad(
+        nombre=unidad.nombre,
+        id_curso=unidad.id_curso,
+        assistant_id=unidad.assistant_id or "",
+        vector_id=unidad.vector_id or ""
+    )
+    db.add(nueva_unidad)
+    db.commit()
+    db.refresh(nueva_unidad)
+    return nueva_unidad
+
+# -------------------------------
+# Editar unidad
+# -------------------------------
+@app.put("/unidades/{unidad_id}", response_model=UnidadOut)
+def editar_unidad(unidad_id: int, unidad: UnidadUpdate, db: Session = Depends(get_db)):
+    db_unidad = db.query(Unidad).filter(Unidad.id == unidad_id).first()
+    if not db_unidad:
+        raise HTTPException(status_code=404, detail="Unidad no encontrada")
+
+    if unidad.nombre is not None:
+        db_unidad.nombre = unidad.nombre
+    if unidad.assistant_id is not None:
+        db_unidad.assistant_id = unidad.assistant_id
+    if unidad.vector_id is not None:
+        db_unidad.vector_id = unidad.vector_id
+
+    db.commit()
+    db.refresh(db_unidad)
+    return db_unidad
+
+# -------------------------------
+# Borrar unidad
+# -------------------------------
+@app.delete("/unidades/{unidad_id}")
+def borrar_unidad(unidad_id: int, db: Session = Depends(get_db)):
+    db_unidad = db.query(Unidad).filter(Unidad.id == unidad_id).first()
+    if not db_unidad:
+        raise HTTPException(status_code=404, detail="Unidad no encontrada")
+
+    db.delete(db_unidad)
+    db.commit()
+    return {"detail": f"Unidad '{db_unidad.nombre}' eliminada"}
+
+@app.get("/perfil/{usuario_id}")
+def ver_perfil(usuario_id: int, db: Session = Depends(get_db)):
+    usuario = db.query(Usuario).filter(Usuario.id == usuario_id).first()
+    if not usuario:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    # Formatear la fecha solo como YYYY-MM-DD
+    nacimiento_formateado = usuario.nacimiento.strftime("%Y-%m-%d") if usuario.nacimiento else None
+    
+    return {
+        "id": usuario.id,
+        "nombre": usuario.nombre,
+        "correo": usuario.correo,
+        "nacimiento": nacimiento_formateado
+    }
+
+
+class PerfilUpdate(BaseModel):
+    nombre: Optional[str] = Field(default=None)
+    correo: Optional[EmailStr] = Field(default=None)
+    contrasena: Optional[str] = Field(default=None)
+    nacimiento: Optional[str] = Field(default=None)
+
+@app.put("/perfil/{usuario_id}")
+def editar_perfil(usuario_id: int, datos: PerfilUpdate, db: Session = Depends(get_db)):
+    usuario = db.query(Usuario).filter(Usuario.id == usuario_id).first()
+    if not usuario:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    if datos.correo and datos.correo != usuario.correo:
+        existente = db.query(Usuario).filter(Usuario.correo == datos.correo).first()
+        if existente:
+            raise HTTPException(status_code=400, detail="El correo ya está registrado")
+        usuario.correo = datos.correo
+
+    if datos.nombre:
+        usuario.nombre = datos.nombre
+
+    # Hashear la contraseña antes de guardar
+    if datos.contrasena:
+        usuario.contrasena = pwd_context.hash(datos.contrasena)
+
+    if datos.nacimiento:
+        usuario.nacimiento = datos.nacimiento
+
+    db.commit()
+    db.refresh(usuario)
+
+    return {
+        "id": usuario.id,
+        "nombre": usuario.nombre,
+        "correo": usuario.correo,
+        "nacimiento": usuario.nacimiento.strftime("%Y-%m-%d") if usuario.nacimiento else None
+    }
+
+@app.delete("/perfil/{usuario_id}")
+def eliminar_perfil(usuario_id: int, db: Session = Depends(get_db)):
+    usuario = db.query(Usuario).filter(Usuario.id == usuario_id).first()
+    if not usuario:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    db.delete(usuario)
+    db.commit()
+    return {"detail": f"Usuario '{usuario.nombre}' eliminado correctamente"}

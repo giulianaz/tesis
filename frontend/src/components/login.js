@@ -65,7 +65,7 @@ const handleSubmit = async (e) => {
                 <form className="login-form" onSubmit={handleSubmit}>
                     <h2 className="login-title">Sign In</h2>
                     <div class="form-group">
-                    <label for="email">Usuario</label>
+                    <label for="email">Correo</label>
                     <input
                       type="email"
                       value={correo}

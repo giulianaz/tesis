@@ -1,17 +1,26 @@
 import React, { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import Navbar from "./navbar";
+import Editar from '../assets/editar.png';
+import Docs from '../assets/docs.png';
+import Evaluacion from '../assets/evaluacion.png';
+import '../styles/curso.css';
 
 const Curso = () => {
   const { idCurso } = useParams();
   const navigate = useNavigate();
   const [curso, setCurso] = useState(null);
   const [cargando, setCargando] = useState(true);
+  const [selectedUnidad, setSelectedUnidad] = useState(null);
+  const [editUnidadId, setEditUnidadId] = useState(null);
+  const [newUnidadNombre, setNewUnidadNombre] = useState("");
+  const [showCrearUnidadForm, setShowCrearUnidadForm] = useState(false);
+  const [nuevaUnidadNombre, setNuevaUnidadNombre] = useState("");
 
   useEffect(() => {
     const usuario = localStorage.getItem("usuario");
     if (!usuario) {
-      navigate("/login"); // Redirige al login si no hay sesión
+      navigate("/login");
       return;
     }
 
@@ -19,26 +28,28 @@ const Curso = () => {
 
     const fetchCurso = async () => {
       try {
-        // Enviamos el usuario_id como query parameter
         const response = await fetch(
           `http://localhost:8000/curso/${idCurso}?usuario_id=${usuarioObj.id}`
         );
 
         if (!response.ok) {
-          if (response.status === 403) {
-            navigate("/"); // Curso no pertenece al usuario
-          } else if (response.status === 404) {
+          if (response.status === 403) navigate("/");
+          else if (response.status === 404) {
             alert("Curso no encontrado");
-            navigate("/"); // Curso no existe
+            navigate("/");
           }
           return;
         }
 
         const data = await response.json();
         setCurso(data);
+
+        if (data.unidades && data.unidades.length > 0) {
+          setSelectedUnidad(data.unidades[0].id);
+        }
       } catch (err) {
         console.error(err);
-        navigate("/"); // Redirige a home si hay error
+        navigate("/");
       } finally {
         setCargando(false);
       }
@@ -47,23 +58,182 @@ const Curso = () => {
     fetchCurso();
   }, [idCurso, navigate]);
 
+  const handleUnidadClick = (unidadId) => {
+    setSelectedUnidad(unidadId);
+  };
+
+  const handleEditarUnidad = (unidadId, nombre) => {
+    setEditUnidadId(unidadId);
+    setNewUnidadNombre(nombre);
+  };
+
+  const handleGuardarEdicion = async (unidadId) => {
+    try {
+      const response = await fetch(`http://localhost:8000/unidades/${unidadId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nombre: newUnidadNombre }),
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setCurso(prev => ({
+          ...prev,
+          unidades: prev.unidades.map(u => (u.id === unidadId ? data : u))
+        }));
+        setEditUnidadId(null);
+        setNewUnidadNombre("");
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleBorrarUnidad = async (unidadId) => {
+    if (!window.confirm("¿Seguro quieres eliminar esta unidad?")) return;
+    try {
+      const response = await fetch(`http://localhost:8000/unidades/${unidadId}`, { method: "DELETE" });
+      if (response.ok) {
+        setCurso(prev => {
+          const nuevasUnidades = prev.unidades.filter(u => u.id !== unidadId);
+          if (selectedUnidad === unidadId && nuevasUnidades.length > 0) {
+            setSelectedUnidad(nuevasUnidades[0].id);
+          } else if (nuevasUnidades.length === 0) {
+            setSelectedUnidad(null);
+          }
+          return { ...prev, unidades: nuevasUnidades };
+        });
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleSubmitNuevaUnidad = async (e) => {
+    e.preventDefault();
+    if (!nuevaUnidadNombre) return;
+
+    try {
+      const response = await fetch("http://localhost:8000/unidades/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nombre: nuevaUnidadNombre, id_curso: curso.id }),
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setCurso(prev => ({
+          ...prev,
+          unidades: [...prev.unidades, data]
+        }));
+        setNuevaUnidadNombre("");
+        setShowCrearUnidadForm(false);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   if (cargando) return <p>Cargando curso...</p>;
   if (!curso) return null;
 
   return (
-    <div>
+    <div className="container-profesor">
       <Navbar />
-      <h1>{curso.nombre}</h1>
-      <h2>Unidades</h2>
-      {curso.unidades.length === 0 ? (
-        <p>No hay unidades aún.</p>
-      ) : (
-        <ul>
-          {curso.unidades.map((unidad) => (
-            <li key={unidad.id}>{unidad.nombre}</li>
-          ))}
-        </ul>
-      )}
+      <div className='volver'>
+        <Link to="/" className="link-back">🡐 Volver</Link>
+      </div>
+
+      <div className='container-body'>
+        <div className="Principal">
+          <h2>{curso.nombre}</h2>
+        </div>
+
+        <div className="content">
+          <div className="unidades">
+            <div className="unidades-tabs">
+              {curso.unidades.map(unidad => (
+                <div key={unidad.id} className="unidad-card">
+                  <button
+                    className={unidad.id === selectedUnidad ? "unidad-tab active" : "unidad-tab"}
+                    onClick={() => handleUnidadClick(unidad.id)}
+                  >
+                    {unidad.nombre}
+                  </button>
+                </div>
+              ))}
+
+              <div className={`crear-unidad-tab ${showCrearUnidadForm ? 'show-form' : ''}`}>
+                <button className="crear-unidad-button" onClick={() => setShowCrearUnidadForm(!showCrearUnidadForm)}>+</button>
+                {showCrearUnidadForm && (
+                  <form onSubmit={handleSubmitNuevaUnidad} className="form-nueva-unidad">
+                    <input
+                      type="text"
+                      value={nuevaUnidadNombre}
+                      onChange={(e) => setNuevaUnidadNombre(e.target.value)}
+                      placeholder="Nombre de la nueva unidad"
+                      required
+                      className="input-nueva-unidad"
+                    />
+                    <div className="form-buttons-3">
+                      <button className='btn-crear3' type="submit">Crear</button>
+                      <button className='btn-cancelar3' type="button" onClick={() => setShowCrearUnidadForm(false)}>Cancelar</button>
+                    </div>
+                  </form>
+                )}
+              </div>
+
+            </div>
+          </div>
+
+          {selectedUnidad && (
+            <div className="actividades">
+              <div className='titulo-actividad'>
+                <div className='nombreUnidad'>
+                  <h3>{curso.unidades.find(u => u.id === selectedUnidad)?.nombre}</h3>
+                  {editUnidadId === selectedUnidad ? (
+                    <form onSubmit={(e) => { e.preventDefault(); handleGuardarEdicion(editUnidadId); }} className="form-editar-unidad">
+                      <input
+                        type="text"
+                        value={newUnidadNombre}
+                        onChange={(e) => setNewUnidadNombre(e.target.value)}
+                        placeholder="Nuevo nombre de la unidad"
+                        required
+                      />
+                      <div className="form-buttons">
+                        <button type="submit">Guardar</button>
+                        <button type="button" className="btn-cancelar" onClick={() => setEditUnidadId(null)}>Cancelar</button>
+                        <button type="button" className="btn-cancelar" onClick={() => handleBorrarUnidad(editUnidadId)}>Borrar </button>
+                      </div>
+                    </form>
+                  ) : (
+                    <button className="editar-unidad-btn" onClick={() => handleEditarUnidad(selectedUnidad, curso.unidades.find(u => u.id === selectedUnidad)?.nombre)}>
+                      <img src={Editar} alt="Editar unidad" />
+                    </button>
+                  )}
+                </div>
+                   <div className='ver-cosas'>
+                    <div className="ver-botones">
+                            <div className="ver-botones">
+                                <Link to={``} className="ver-corpus">
+                                <img src={Evaluacion} alt="Ícono Foro" className="icono-evaluacion" />
+                                Nueva Evaluación</Link>
+                          </div>
+                    </div>
+                    <div className="ver-botones">
+                            <div className="ver-botones">
+                                <Link to={`/corpus/${selectedUnidad}`} className="ver-corpus">
+                                <img src={Docs} alt="Ícono Foro" className="icono-foro" />
+                                Material de clases</Link>
+                          </div>
+                    </div>
+
+                  </div>
+              </div>
+
+            </div>
+          )}
+
+        </div>
+      </div>
     </div>
   );
 };

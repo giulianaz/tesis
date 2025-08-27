@@ -4,6 +4,7 @@ import Registro from "./components/registro";
 import Login from "./components/login";
 import Home from "./components/home";
 import Curso from "./components/curso"; // <-- Nuevo componente
+import Perfil from "./components/perfil";
 import '@fortawesome/fontawesome-free/css/all.min.css';
 import "./App.css";
 
@@ -14,6 +15,7 @@ function App() {
         <Route path="/registro" element={<Registro />} />
         <Route path="/login" element={<Login />} />
         <Route path="/" element={<Home />} />
+        <Route path="/perfil" element={<Perfil />} />
         <Route path="/curso/:idCurso" element={<Curso />} /> {/* <-- Ruta dinámica */}
       </Routes>
     </Router>

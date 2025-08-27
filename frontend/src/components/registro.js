@@ -34,7 +34,11 @@ const Registro = () => {
       const data = await response.json();
 
       if (!response.ok) {
-        setMensaje(data.detail || "Error al registrarse");
+        if (data.detail === "El correo ya está registrado") {
+          setMensaje("El correo ya está en uso");
+        } else {
+          setMensaje(data.detail || "Error al registrarse");
+        }
       } else {
         setMensaje(`Usuario ${data.nombre} registrado con éxito!`);
         // Limpiar formulario
@@ -43,6 +47,7 @@ const Registro = () => {
         setContrasena("");
         setNacimiento("");
       }
+
     } catch (error) {
       console.error(error);
       setMensaje('Error al registrar la cuenta');

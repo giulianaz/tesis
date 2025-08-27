@@ -1,0 +1,175 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
+
+/* Asegúrate de que ningún contenedor tenga bordes innecesarios */
+.perfil-container-home {
+    border: none; /* Elimina cualquier borde */
+}
+
+.perfil-container-body {
+    background-color: transparent; /* Elimina cualquier fondo adicional */
+    max-width: 100%;
+    margin: auto;
+    border: none; /* Asegúrate de que no haya borde */
+}
+
+/* Verifica que el cuadro de perfil no tenga bordes innecesarios */
+.perfil-content {
+    padding: 20px;
+    background-color: #fff;
+    border-radius: 4px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    margin-top: 60px;
+    max-width: 95%;
+    margin-left: auto;
+    margin-right: auto;
+    border: none; /* Asegúrate de que no haya borde */
+    height: 600px;
+    display: flex;
+    justify-content: flex-start;
+    align-items: flex-start;
+}
+body.dark-mode .perfil-content {
+    background-color: #172140;
+    color: #fff;
+}
+
+.perfil-content .profile-image-container{
+    margin-left: 40px;
+}
+
+.perfil-derecha {
+    margin-top: 30px;
+    margin-left: 20px;
+}
+
+.perfil-derecha h2{
+    margin-bottom: 50px;
+    margin-top: 25px;
+    color: rgb(57, 0, 62);
+}
+body.dark-mode .perfil-derecha h2{
+    color: #fff;
+}
+
+.perfil-item{
+    color: rgb(108, 0, 174);
+    font-weight: 400;
+    text-align: justify;
+    display: flex;
+    margin-bottom: 3px;
+}
+body.dark-mode .perfil-item{
+    color: #fff;
+}
+
+.perfil-item strong{
+    color: rgb(57, 0, 62);
+    font-weight: 500;
+    margin-right: 100px;
+    min-width: 220px;
+    font-size: 1.3rem;
+}  
+body.dark-mode .perfil-item strong{
+    color: #eab1fd;
+    
+}
+
+.perfil-item p{
+    text-align: justify;
+    font-size: 1.3rem;
+}
+
+.btn-delete{
+    margin-left: 0;
+    margin-top: 30px;
+}
+
+.perfil-details {
+    margin-bottom: 20px;
+}
+
+.perfil-item {
+    margin-bottom: 15px;
+    font-size: 1.1rem;
+}
+
+.perfil-actions {
+    display: flex;                /* Asegúrate de que los botones se alineen en línea */
+    justify-content: flex-end;    /* Mantiene los botones alineados a la derecha */
+    gap: 10px;                   /* Espacio entre los botones */
+    width: 100%;                 /* Asegúrate de que el contenedor ocupe todo el ancho */
+}
+
+
+.btn-edit {
+    background-color: #92319B; /* Verde para el botón de Editar */
+    color: #fff;
+    border: none;
+    padding: 6px 20px;
+    font-size: 20px;
+    cursor: pointer;
+    border-radius: 10px;
+    font-weight: 300;
+}
+
+.btn-edit img {
+    width: 20px;                 /* Ajusta el tamaño de la imagen */
+    height: 20px;                /* Ajusta la altura de la imagen */
+    margin-right: 10px;           /* Espacio entre la imagen y el texto */
+    filter: invert(1);           /* Aplica el filtro de inversión de color */
+}
+
+.btn-save {
+    background-color: #6C00AE; /* Verde para el botón de Guardar */
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    font-size: 14px;
+    cursor: pointer;
+    border-radius: 10px;
+    margin-left: -40px;
+}
+
+.btn-cancel {
+    background-color: #d33649; /* Rojo para el botón de Cancelar */
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    font-size: 14px;
+    cursor: pointer;
+    border-radius: 10px;
+    margin-left: 10px;
+}
+
+.perfil-item input{
+    flex: 1; /* Ocupa todo el espacio disponible */
+    margin-right: 10px; /* Espacio a la derecha del campo de entrada */
+    padding: 8px; /* Espaciado interno del campo de entrada */
+    font-size: 17px; /* Tamaño de fuente del campo de entrada */
+    border-radius: 0.2rem;
+  }
+body.dark-mode .perfil-item input {
+    background-color: #A4ADBF; /* Color de fondo del campo de entrada */
+    border: 1px solid #A4ADBF; /* Borde del campo de entrada */
+}
+
+.perfil-item {
+    display: flex;            /* Mantiene los elementos en fila */
+    align-items: center;      /* Alinea verticalmente <strong> y <p> */
+    margin-bottom: 15px;
+    font-size: 1.1rem;
+    gap: 10px;                /* Espacio entre label y valor */
+}
+
+.perfil-item strong {
+    min-width: 150px;         /* Ajusta el ancho del label según necesites */
+    font-weight: 500;
+    color: rgb(57, 0, 62);
+    font-size: 1.3rem;
+}
+
+.perfil-item p {
+    margin: 0;                /* Elimina margen por defecto */
+    font-size: 1.3rem;
+    text-align: left;
+}

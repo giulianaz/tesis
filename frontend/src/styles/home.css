@@ -1,0 +1,334 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+  background-color: #F4F4F4; /* Fondo de la ventana completa */
+  font-family: 'Poppins' !important;
+}
+body.dark-mode {
+  background-color: #0A1126;
+  color: #ffffff;
+}
+
+.container-body {
+  position: relative;
+  max-width: 90%;
+  width: 100%;
+  padding: 20px;
+  background-color: #fff;
+  border-radius: 10px;
+  margin: 20px auto;
+  margin-top: 60px;
+  box-sizing: border-box; 
+  font-family: 'Poppins' !important;
+}
+body.dark-mode .container-body { 
+  background-color: #172140; /* Color en modo oscuro */
+  color: #ffffff; /* Color de texto en modo oscuro */
+}
+
+.curso-list {
+  display: flex;
+  flex-wrap: wrap;
+  margin-right: -60px; /* Ajusta el margen negativo para los bordes laterales */
+  list-style-type: none;
+}
+
+.curso-item {
+  flex: 0 0 calc(33.33% - 40px);
+  box-sizing: border-box;
+  padding: 20px;
+  position: relative;
+  cursor: pointer; /* Cambia el cursor a una mano */
+  transition: box-shadow 0.3s ease, transform 0.3s ease; /* Transiciones suaves para sombra y transformación */
+}
+
+.curso-item:hover {
+  transform: translateY(-5px); /* Levanta ligeramente la tarjeta al hacer hover */
+}
+
+.curso-editing {
+  cursor: default; /* Cambia el cursor a uno estándar */
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* Sombra ligera para la tarjeta */
+}
+
+.curso-card {
+  display: flex;
+  flex-direction: column;
+  height: 350px; /* Altura mínima de la tarjeta */
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background-color: #f8f9fa;
+  overflow: hidden; /* Oculta el desbordamiento */
+  position: relative; /* Permite posicionar elementos hijos absolutamente */
+}
+body.dark-mode .curso-card {
+  border: 1px solid #555F73;
+  background-color: #0A1126;
+}
+
+.curso-image {
+  height: 150px; /* Altura de la imagen */
+  width: 100%; /* Ajusta la imagen al 100% del contenedor */
+  overflow: hidden; /* Oculta el desbordamiento */
+  padding-top: 20px;
+  display: flex;
+  justify-content: center; /* Centra la imagen horizontalmente */
+  position: relative; /* Permite posicionar el icono de edición */
+  cursor: pointer; /* Cambia el cursor a una mano para indicar que es clickable */
+}
+
+.curso-image img {
+  width: auto; /* Ajusta la imagen al tamaño automático */
+  height: 100%; /* Altura automática */
+  object-fit: contain; /* Ajusta la imagen */
+}
+
+.curso-image:hover {
+  opacity: 0.9; /* Cambia la opacidad al pasar el mouse por encima */
+}
+
+.curso-content {
+  padding: 15px; /* Padding interno del contenido */
+  flex-grow: 1; /* Hace que el contenido ocupe todo el espacio disponible */
+  margin-top: -10px; /* Separación adicional del borde superior de la tarjeta */
+  display: flex;
+  flex-direction: column;
+  justify-content: center; /* Centra verticalmente el contenido */
+}
+
+.view-curso {
+  display: flex;
+  justify-content: center; /* Centra horizontalmente el contenido */
+  align-items: center; /* Centra verticalmente el contenido */
+  flex-grow: 1; /* Hace que el contenido ocupe todo el espacio disponible */
+}
+
+.curso-name {
+  color: #4FCBFF ;
+  cursor: pointer;
+  font-size: 25px; /* Tamaño del texto del nombre del curso */
+  text-align: center; /* Centrado horizontal */
+  margin-bottom: 10px; /* Espacio inferior adicional */
+  text-decoration: none; /* Eliminar la línea subrayada */
+  display: block; /* Convertir en bloque para ocupar todo el ancho disponible */
+  padding: 0 20px; /* Añadir padding a los lados para evitar que el texto esté muy cerca de los bordes */
+  transition: color 0.3s, transform 0.1s; /* Transiciones suaves para color y transformación */
+}
+
+.curso-name:hover {
+  color: #216d8d !important; /* Cambiar el color del texto al pasar el mouse por encima */
+  transform: scale(1.01); /* Escalar el texto al 110% del tamaño original */
+}
+
+.curso-actions {
+  display: flex;
+}
+
+.btn-delete,
+.btn-edit {
+  margin-left: 10px;
+  padding: 5px 10px;
+  background-color: #d33649;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.btn-delete:hover{
+  opacity: 0.8;
+}
+
+.btn-save1 {
+  margin: 10px!important;
+  padding: 0.3rem 0.8rem !important;
+  background-color: #6C00AE;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.btn-save1:hover, .btn-add-2:hover{
+  opacity: 0.8;
+}
+
+.add-curso {
+  margin-top: 20px;
+}
+
+.edit-icon {
+  position: absolute;
+  right: 5%;
+  width: 20px; /* Ancho del icono de edición */
+  height: auto; /* Altura automática según el ancho */
+  cursor: pointer; /* Cambia el cursor a una mano para indicar que es clickable */
+  display: inline-block; /* Hace que el contenedor se comporte como un bloque en línea */
+}
+
+.edit-icon img {
+  width: 100%; /* Ajusta el ancho del icono de edición */
+  height: auto; /* Altura automática según el ancho */
+  transition: transform 0.3s ease, background-color 0.3s ease; /* Transición suave para transformaciones y color de fondo */
+}
+body.dark-mode .edit-icon img {
+  filter: invert(1); /* Invierte los colores de la imagen en modo oscuro */
+}
+
+.edit-icon:hover img {
+  transform: scale(1.1); /* Escala la imagen al 120% */
+}
+
+
+
+.titulopag{
+  color: #39003E;
+  font-size: 1.2rem;
+  margin-left: 40px;
+}
+body.dark-mode .titulopag {
+  color: #ffffff; /* Color de texto en modo oscuro */
+}
+
+.agregar-icon {
+  width: 45px;
+  height: auto;
+  cursor: pointer;
+  position: absolute;
+  top: 20px; /* Ajustar la posición desde la parte superior */
+  right: 20px; /* Ajustar la posición desde la parte derecha */
+  z-index: 1; /* Asegura que el botón esté por encima del contenido */
+}
+
+.agregar-icon:hover {
+  opacity: 0.8;
+}
+
+.agregar-curso-form {
+  position: absolute;
+  top: 14px; /* Ajustar la posición desde la parte superior */
+  right: 75px; /* Ajustar la posición desde la parte derecha */
+  background-color: #f9f9f9; /* Color de fondo similar al resto */
+  border: 1px solid #ccc; /* Borde similar al resto */
+  padding: 10px; /* Espaciado interno del formulario */
+  border-radius: 4px; /* Bordes redondeados */
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* Sombra ligera para el formulario */
+  display: flex; /* Flex container */
+  align-items: center; /* Centrar verticalmente los elementos */
+  max-width: calc(100% - 80px); /* Ancho máximo del formulario, ajustado para que no cubra todo el ancho */
+}
+body.dark-mode .agregar-curso-form {
+  background-color: #555F73; /* Color de fondo del formulario */
+  border: 1px solid #555F73; /* Borde del formulario */
+}
+
+.agregar-curso-form input {
+  flex: 1; /* Ocupa todo el espacio disponible */
+  margin-right: 10px; /* Espacio a la derecha del campo de entrada */
+  padding: 5px; /* Espaciado interno del campo de entrada */
+  font-size: 14px; /* Tamaño de fuente del campo de entrada */
+}
+body.dark-mode .agregar-curso-form input {
+  background-color: #A4ADBF; /* Color de fondo del campo de entrada */
+  border: 1px solid #A4ADBF; /* Borde del campo de entrada */
+}
+
+.edit-curso input{
+  flex: 1; /* Ocupa todo el espacio disponible */
+  margin-right: 10px; /* Espacio a la derecha del campo de entrada */
+  padding: 5px; /* Espaciado interno del campo de entrada */
+  font-size: 14px; /* Tamaño de fuente del campo de entrada */
+}
+body.dark-mode .edit-curso input {
+  background-color: #A4ADBF; /* Color de fondo del campo de entrada */
+  border: 1px solid #A4ADBF; /* Borde del campo de entrada */
+}
+
+.btn-add-2 {
+  padding: 8px 12px; /* Espaciado interno de los botones */
+  font-size: 14px; /* Tamaño de fuente de los botones */
+  cursor: pointer; /* Cambia el cursor al pasar por encima */
+  background-color: #6C00AE; /* Color de fondo del botón */
+  color: #fff; /* Color del texto del botón */
+  border: none; /* Sin borde */
+  border-radius: 4px; /* Bordes redondeados */
+  margin-right: 5px; /* Espacio a la derecha de los botones */
+}
+
+/* Contenedor principal para el footer y el ícono */
+.footer-container {
+  position: fixed;
+  bottom: 10px;
+  right: 10px;
+  z-index: 1000;
+}
+
+/* Ícono del footer minimizado solo en home-mode */
+.footer-container.home-mode .footer-icon {
+  display: block; /* Aparece solo en home-mode */
+  width: 40px;
+  height: 40px;
+  cursor: pointer;
+}
+
+.footer-icon img {
+  width: 100%;
+  height: auto;
+}
+
+/* Footer expandido solo en home-mode */
+.footer-container.home-mode .secondary-footer {
+  display: none; /* Oculto en estado minimizado */
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  background-color: transparent;
+  padding: 1rem;
+  border-radius: 5px;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  color: #39003E;
+}
+
+/* Mostrar el footer expandido y ocultar el ícono al pasar el cursor solo en home-mode */
+.footer-container.home-mode:hover .secondary-footer {
+  display: block;
+}
+
+.footer-container.home-mode:hover .footer-icon {
+  display: none;
+}
+
+/* Iconos dentro del footer */
+.social-icons {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.social-logo {
+  width: 24px;
+  height: 24px;
+  transition: transform 0.3s;
+}
+
+.social-logo:hover {
+  transform: scale(1.1);
+}
+
+.mensaje-home {
+  background-color: #E8D4F0; /* Fondo lila suave */
+  color: #39003E; /* Texto púrpura oscuro */
+  padding: 10px 15px; /* Espaciado interno */
+  border-radius: 6px; /* Bordes redondeados */
+  border: 1px solid #C499D3; /* Borde ligeramente más oscuro */
+  margin: 15px 0; /* Separación superior e inferior */
+  text-align: center; /* Centrado del texto */
+  font-weight: 600; /* Un poco más grueso para destacar */
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1); /* Sombra ligera */
+  transition: background-color 0.3s, color 0.3s; /* Suave transición en hover */
+}

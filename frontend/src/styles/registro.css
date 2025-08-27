@@ -1,47 +1,129 @@
-.registro-container {
-  width: 400px;
-  margin: 50px auto;
-  padding: 30px;
-  background-color: #f2f2f2;
-  border-radius: 10px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-  font-family: Arial, sans-serif;
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+  background-color: #F7F7F7; /* Fondo de la ventana completa */
 }
 
-.registro-container h2 {
+/* Contenedor principal */
+.register-container {
+  display: flex;
+  background-size: cover; /* Ajusta el tamaño de la imagen para cubrir todo el fondo */
+  background-repeat: no-repeat; /* Evita que la imagen se repita */
+  background-position: center; /* Centra la imagen en el fondo */
+  flex-direction: column;
+  align-items: center; /* Centra horizontalmente */
+  justify-content: center; /* Centra verticalmente */
+  height: 100vh; /* 100% del alto de la ventana */
+  
+  
+}
+
+.register-form label {
+  color: #39003E;
+  margin-bottom: 0.5rem;
+  display: block;
+  font-weight: 600;
+}
+
+/* Título del formulario */
+.register-title {
   text-align: center;
-  margin-bottom: 20px;
-  color: #333;
+  margin-bottom: 40px;
+  font-size: 1.8rem; /* Ajusta el tamaño de la fuente del título */
 }
 
-.registro-form {
+/* Estilo del formulario */
+.register-form {
+  width: 350px; /* Ajusta el ancho del formulario */
+  padding: 25px; /* Ajusta el padding interno del formulario */
+  border: 2px solid #ccc; /* Borde alrededor del formulario */
+  border-radius: 10px; /* Bordes redondeados */
+  background-color: #ffffff; /* Fondo blanco del formulario */
+  box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1); /* Sombra para darle un efecto de elevación */
   display: flex;
   flex-direction: column;
+  justify-content: center; /* Centra verticalmente */
+  margin-top: 20px; /* Añade un margen superior para separar el formulario del borde superior */
+  box-shadow: 0px 20px 50px rgba(57, 0, 62, 0.53);
 }
 
-.registro-form label {
-  margin-bottom: 5px;
-  font-weight: bold;
+/* Estilo del logo */
+.register-logo {
+  width: 200px;
+  height: auto;
+  display: block;
+  margin: 0 auto; /* Centra horizontalmente */
+  margin-bottom: 10px;
+  border: 1px solid #ffffff6b;
+  border-radius: 50%;
 }
 
-.registro-form input {
-  padding: 10px;
-  margin-bottom: 15px;
+
+/* Estilo de los campos de entrada */
+.register-form input {
+  width: 100%;
+  padding: 12px; /* Ajusta el padding de los inputs */
+  margin-bottom: 12px; /* Ajusta el margen inferior de los inputs */
   border: 1px solid #ccc;
   border-radius: 5px;
+  box-sizing: border-box;
+  font-size: 1rem; /* Ajusta el tamaño de la fuente de los inputs */
 }
 
-.registro-form button {
-  padding: 10px;
-  background-color: #4CAF50;
+/* Estilo del botón de creación de cuenta */
+.register-form button {
+  width: 100%;
+  padding: 12px; /* Ajusta el padding del botón */
+  background-color: #0f7d7e;
   color: white;
   border: none;
   border-radius: 5px;
   cursor: pointer;
-  font-weight: bold;
-  transition: background 0.3s;
+  font-size: 1rem; /* Ajusta el tamaño de la fuente del botón */
 }
 
-.registro-form button:hover {
-  background-color: #45a049;
+.register-form button:hover {
+  background-color: #0c6667;
+}
+
+/* Mensaje de error o éxito */
+.register-message {
+  margin-top: 15px; /* Ajusta el margen superior del mensaje */
+  text-align: center;
+  color: red;
+  font-size: 1rem; /* Ajusta el tamaño de la fuente del mensaje */
+}
+
+/* Estilo para el enlace de redirección */
+.register-login {
+  margin-top: 20px;
+  text-align: center;
+  font-size: 1rem;
+}
+
+.register-login a {
+  color: #6A0DAD;
+  text-decoration: none;
+}
+
+.register-login a:hover {
+  color: #510586;
+  text-decoration: underline;
+}
+
+.button-registrarse{
+  background-color: #6A0DAD !important;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 0.8rem;
+  width: 100%;
+}
+
+.button-registrarse:hover {
+  opacity: 0.8;
 }

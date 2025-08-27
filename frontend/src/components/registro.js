@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import "../styles/registro.css";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from 'react-router-dom';
+import Logo from '../assets/logo.png';
+
 
 const Registro = () => {
   const [nombre, setNombre] = useState("");
@@ -43,14 +45,15 @@ const Registro = () => {
       }
     } catch (error) {
       console.error(error);
-      setMensaje("Error de conexión con el servidor");
+      setMensaje('Error al registrar la cuenta');
     }
   };
 
   return (
-    <div className="registro-container">
-      <h2>Registro</h2>
-      <form className="registro-form" onSubmit={handleSubmit}>
+      <div className="register-container">
+      <form className="register-form" onSubmit={handleSubmit}>
+        <img src={Logo} alt="Logo" className="register-logo" />
+        <h2 className="register-title">Crea tu cuenta</h2>
         <label>Nombre:</label>
         <input
           type="text"
@@ -82,12 +85,12 @@ const Registro = () => {
           onChange={(e) => setNacimiento(e.target.value)}
         />
 
-        <button type="submit">Registrarse</button>
+        <button type="submit">Crear Cuenta</button>
+        {mensaje && <p className="register-message">{mensaje}</p>}
+        <div className="register-login">
+          <Link to="/login">¿Ya tienes una cuenta? Inicia sesión</Link>
+        </div>
       </form>
-
-      {mensaje && <p className="mensaje">{mensaje}</p>}
-
-      <a href="/login">Iniciar Sesion</a>
     </div>
   );
 };

@@ -4,6 +4,7 @@ import Registro from "./components/registro";
 import Login from "./components/login";
 import Home from "./components/home";
 import Curso from "./components/curso"; // <-- Nuevo componente
+import '@fortawesome/fontawesome-free/css/all.min.css';
 import "./App.css";
 
 function App() {

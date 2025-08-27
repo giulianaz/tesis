@@ -1,38 +1,54 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "./navbar";
+import '../styles/home.css';
+import Curso from '../assets/curso.png';
+import Editar from '../assets/editar.png';
+import Agregar from '../assets/agregar.png';
+import ig from '../assets/instagram.png';
+import mail from '../assets/mail.png';
+import linkedin from '../assets/linkedin.png';
 
 const Home = () => {
   const navigate = useNavigate();
+  const [cursos, setCursos] = useState([]);
   const [nombreCurso, setNombreCurso] = useState("");
   const [mensaje, setMensaje] = useState("");
-  const [cursos, setCursos] = useState([]);
+  const [showAgregarCurso, setShowAgregarCurso] = useState(false);
   const [editCursoId, setEditCursoId] = useState(null);
-  const [editNombre, setEditNombre] = useState("");
+  const [newCursoNombre, setNewCursoNombre] = useState("");
 
+  // Comprobar usuario en sesión
   useEffect(() => {
     const usuario = localStorage.getItem("usuario");
     if (!usuario) {
       navigate("/login");
       return;
     }
-
-    const usuarioObj = JSON.parse(usuario);
-
-    const fetchCursos = async () => {
-      try {
-        const response = await fetch(`http://localhost:8000/cursos/${usuarioObj.id}`);
-        const data = await response.json();
-        setCursos(data);
-      } catch (err) {
-        console.error("Error al obtener cursos:", err);
-      }
-    };
-
     fetchCursos();
   }, [navigate]);
 
-  const crearCurso = async () => {
+  const fetchCursos = async () => {
+    const usuario = JSON.parse(localStorage.getItem("usuario"));
+    if (!usuario) return;
+    try {
+      const response = await fetch(`http://localhost:8000/cursos/${usuario.id}`);
+      if (response.ok) {
+        const data = await response.json();
+        setCursos(data);
+      }
+    } catch (err) {
+      console.error(err);
+      setMensaje("Error al cargar cursos");
+    }
+  };
+
+  const toggleAgregarCurso = () => {
+    setShowAgregarCurso(!showAgregarCurso);
+    if (showAgregarCurso) setNombreCurso("");
+  };
+
+  const handleGuardarCurso = async () => {
     const usuario = JSON.parse(localStorage.getItem("usuario"));
     if (!usuario) return;
 
@@ -42,18 +58,15 @@ const Home = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ nombre: nombreCurso, id_usuario: usuario.id }),
       });
-
       const data = await response.json();
 
       if (!response.ok) {
-        const errorMsg = Array.isArray(data.detail)
-          ? data.detail.map(e => e.msg).join(", ")
-          : data.detail || "Error al crear el curso";
-        setMensaje(errorMsg);
+        setMensaje(data.detail || "Error al crear curso");
       } else {
         setMensaje(`Curso "${data.nombre}" creado con éxito!`);
-        setNombreCurso("");
         setCursos(prev => [...prev, { id: data.id, nombre: data.nombre }]);
+        setNombreCurso("");
+        setShowAgregarCurso(false);
       }
     } catch (err) {
       console.error(err);
@@ -61,48 +74,29 @@ const Home = () => {
     }
   };
 
-  const borrarCurso = async (id, nombre) => {
-    if (!window.confirm(`¿Estás seguro de eliminar el curso "${nombre}"?`)) return;
-
-    try {
-      const response = await fetch(`http://localhost:8000/cursos/${id}`, { method: "DELETE" });
-      const data = await response.json();
-
-      if (!response.ok) {
-        setMensaje(data.detail || "Error al borrar el curso");
-      } else {
-        setMensaje(data.detail);
-        setCursos(prev => prev.filter(curso => curso.id !== id));
-      }
-    } catch (err) {
-      console.error(err);
-      setMensaje("Error de conexión con el servidor");
-    }
-  };
-
-  const iniciarEdicion = (curso) => {
+  const handleEditarCurso = (curso) => {
     setEditCursoId(curso.id);
-    setEditNombre(curso.nombre);
+    setNewCursoNombre(curso.nombre);
   };
 
-  const guardarEdicion = async () => {
+  const handleGuardarEdicion = async () => {
     try {
       const response = await fetch(`http://localhost:8000/cursos/${editCursoId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nombre: editNombre }),
+        body: JSON.stringify({ nombre: newCursoNombre }),
       });
       const data = await response.json();
 
       if (!response.ok) {
-        setMensaje(data.detail || "Error al editar el curso");
+        setMensaje(data.detail || "Error al actualizar curso");
       } else {
-        setMensaje(`Curso "${data.nombre}" actualizado`);
         setCursos(prev =>
           prev.map(c => (c.id === editCursoId ? { ...c, nombre: data.nombre } : c))
         );
         setEditCursoId(null);
-        setEditNombre("");
+        setNewCursoNombre("");
+        setMensaje(`Curso "${data.nombre}" actualizado`);
       }
     } catch (err) {
       console.error(err);
@@ -110,72 +104,108 @@ const Home = () => {
     }
   };
 
-  const cancelarEdicion = () => {
-    setEditCursoId(null);
-    setEditNombre("");
+  const handleEliminarCurso = async (cursoId) => {
+    if (!window.confirm("¿Seguro quieres eliminar este curso?")) return;
+    try {
+      const response = await fetch(`http://localhost:8000/cursos/${cursoId}`, { method: "DELETE" });
+      const data = await response.json();
+
+      if (!response.ok) setMensaje(data.detail || "Error al eliminar curso");
+      else {
+        setCursos(prev => prev.filter(c => c.id !== cursoId));
+        setMensaje("Curso eliminado correctamente");
+      }
+    } catch (err) {
+      console.error(err);
+      setMensaje("Error de conexión con el servidor");
+    }
   };
 
   return (
-    <div>
+    <div className="container-home">
       <Navbar />
-      <div style={{ padding: "20px" }}>
-        <h1>Página principal</h1>
-        <p>Bienvenido a la app, tu sesión está activa.</p>
-
-        <div style={{ marginTop: "20px" }}>
-          <input
-            type="text"
-            placeholder="Nombre del curso"
-            value={nombreCurso}
-            onChange={(e) => setNombreCurso(e.target.value)}
-          />
-          <button onClick={crearCurso}>Crear Curso</button>
+      <div className="container-body">
+        <div className="titulopag">
+          <h2>Mis Cursos</h2>
+          <div className="add-curso">
+            <img 
+              src={Agregar} 
+              alt="Agregar curso" 
+              className="agregar-icon" 
+              onClick={toggleAgregarCurso} 
+            />
+            {showAgregarCurso && (
+              <div className="agregar-curso-form">
+                <input
+                  type="text"
+                  value={nombreCurso}
+                  onChange={(e) => setNombreCurso(e.target.value)}
+                  placeholder="Nombre del curso"
+                />
+                <button className="btn-add-2" onClick={handleGuardarCurso}>Agregar Curso</button>
+              </div>
+            )}
+          </div>
         </div>
 
-        {mensaje && <p style={{ color: "green" }}>{mensaje}</p>}
+        {mensaje && <p className="mensaje-home">{mensaje}</p>}
 
-        <div style={{ marginTop: "30px" }}>
-        <h2>Tus cursos</h2>
-        {cursos.length === 0 ? (
-            <p>No tienes cursos aún.</p>
-        ) : (
-            <ul>
-            {cursos.map(curso => (
-                <li key={curso.id} style={{ marginBottom: "10px" }}>
-                {editCursoId === curso.id ? (
-                    <>
-                    <input
+        <ul className="curso-list">
+          {cursos.map(curso => (
+            <li key={curso.id} className={`curso-item ${editCursoId === curso.id ? 'curso-editing' : ''}`}>
+              <div className="curso-card">
+                <div className="curso-image">
+                  <img src={Curso} alt="Imagen de curso" />
+                  <div 
+                    className="edit-icon" 
+                    onClick={(e) => { 
+                      e.stopPropagation(); // Evita que el click en el icono navegue
+                      handleEditarCurso(curso); 
+                    }}
+                  >
+                    <img src={Editar} alt="Editar curso"/>
+                  </div>
+                </div>
+                <div 
+                  className="curso-content" 
+                  onClick={() => { if(editCursoId !== curso.id) navigate(`/curso/${curso.id}`) }}
+                  style={{ cursor: editCursoId === curso.id ? "default" : "pointer" }}
+                >
+                  {editCursoId === curso.id ? (
+                    <div className="edit-curso">
+                      <input
                         type="text"
-                        value={editNombre}
-                        onChange={(e) => setEditNombre(e.target.value)}
-                    />
-                    <button onClick={guardarEdicion}>Guardar</button>
-                    <button onClick={cancelarEdicion}>Cancelar</button>
-                    </>
-                ) : (
-                    <>
-                    {/* Nombre clickeable */}
-                    <span
-                        style={{ cursor: "pointer", textDecoration: "underline", color: "blue" }}
-                        onClick={() => navigate(`/curso/${curso.id}`)}
-                    >
-                        {curso.nombre}
-                    </span>
+                        value={newCursoNombre}
+                        onChange={(e) => setNewCursoNombre(e.target.value)}
+                        placeholder="Nuevo nombre del curso"
+                      />
+                      <button className="btn-save1" onClick={handleGuardarEdicion}>Guardar</button>
+                      <button className="btn-delete" onClick={() => handleEliminarCurso(curso.id)}>Eliminar</button>
+                    </div>
+                  ) : (
+                    <span className="curso-name">{curso.nombre}</span>
+                  )}
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
 
-                    <button style={{ marginLeft: "10px" }} onClick={() => iniciarEdicion(curso)}>
-                        Editar
-                    </button>
-                    <button style={{ marginLeft: "10px" }} onClick={() => borrarCurso(curso.id, curso.nombre)}>
-                        Borrar
-                    </button>
-                    </>
-                )}
-                </li>
-            ))}
-            </ul>
-        )}
-        </div>
 
+        <footer className="secondary-footer">
+          <p>Contacto a soporte:</p>
+          <div className="social-icons">
+            <a href="https://www.instagram.com/aiwant2teach/" target="_blank" rel="noopener noreferrer">
+              <img src={ig} alt="Instagram" className="social-logo" />
+            </a>
+            <a href="mailto:soporte@aiwant2teach.com">
+              <img src={mail} alt="Email" className="social-logo" />
+            </a>
+            <a href="https://www.linkedin.com/in/ai-want-2-teach" target="_blank" rel="noopener noreferrer">
+              <img src={linkedin} alt="LinkedIn" className="social-logo" />
+            </a>
+          </div>
+        </footer>
       </div>
     </div>
   );

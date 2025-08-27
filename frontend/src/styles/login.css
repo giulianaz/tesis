@@ -1,55 +1,241 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+  background-color: #F7F7F7; /* Fondo de la ventana completa */
+  font-family: 'Poppins';
+}
+
+.login-background {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background-color: #f5f5f5;
+}
+
 .login-container {
-  max-width: 400px;
-  margin: 50px auto;
-  padding: 30px;
-  border: 1px solid #ccc;
-  border-radius: 10px;
-  background-color: #f9f9f9;
+  display: flex;
+  flex-direction: row; /* Alinea los elementos en filas (horizontalmente) */
+  justify-content: space-between; /* Espacio entre los elementos */
+  align-items: stretch; /* Alinea los elementos verticalmente para que ocupen toda la altura */
+  background-color: white;
+  box-shadow: 0px 20px 50px rgba(57, 0, 62, 0.53); /* Sombra según tus parámetros */
+  width: 80%;
+  max-width: 900px; /* Ajusta según sea necesario */
+  height: 60%; /* Ajusta la altura para que sea similar a la imagen */
+  overflow: hidden; /* Asegúrate de que el contenido no desborde */
+  position: relative;
 }
 
-.login-container h2 {
-  text-align: center;
-  margin-bottom: 20px;
+.login-left {
+  display: flex;
+  flex-direction: column; /* Asegúrate de que el contenido esté alineado verticalmente */ /* Centra verticalmente */
+  align-items: flex-start; /* Centra horizontalmente */
+  background-image: url('../assets/background-login.png');
+  background-size: 100% 100%; /* La imagen cubre dos veces el ancho y todo el alto */
+  background-position: left center; /* Coloca la imagen en la mitad izquierda */
+  background-repeat: no-repeat; /* Evita que la imagen se repita */
+  padding: 2rem;
+  width: 50%; /* Ocupa la mitad del contenedor */
+  height: 100%;
+  color: white; /* Color del texto blanco para que contraste con el fondo */
 }
 
-.login-form label {
+.login-right {
+  display: flex;
+  flex-direction: column;
+  justify-content: center; /* Centra verticalmente */
+  align-items: center; /* Centra horizontalmente */
+  padding: 2rem;
+  width: 50%; /* Ocupa la mitad del contenedor */
+  height: 100%;
+}
+
+.login-content {
+  width: 100%;
+}
+
+.login-header {
+  display: flex;
+  align-items: center;
+}
+
+.login-logo {
+  width: 100px;
+  margin-bottom: 1rem;
+}
+
+.login-title {
+  color: #39003E;
+  margin-bottom: 2rem;
+  font-size: 36px; /* Aumenta el tamaño del título */
+  font-weight: 600; /* Aplica el peso de la fuente Poppins */
+  text-align: center; /* Centra el texto */
+}
+.login-title-text {
+  font-size: 24px;
+  font-weight: 600;
+  margin-left: 1rem;
+}
+
+.welcome-text{
+  font-size: 46px;
+  font-weight: 600;
+  margin-top: 2rem;
+  margin-left: 1rem;
+  line-height: 2;
+}
+
+.form-group {
+  width: 100%; /* Hace que los campos de entrada ocupen todo el ancho disponible */
+  max-width: 400px; /* Establece un ancho máximo para que no se extiendan demasiado */
+  margin-bottom: 1rem;
+}
+
+.form-group label {
+  color: #39003E;
+  margin-bottom: 0.5rem;
   display: block;
-  margin-bottom: 5px;
-  font-weight: bold;
+  font-weight: 600;
 }
 
-.login-form input {
+input[type="email"], input[type="password"] {
   width: 100%;
-  padding: 8px;
-  margin-bottom: 15px;
-  border-radius: 5px;
+  padding: 0.8rem;
+  margin-bottom: 1rem;
   border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 16px;
 }
 
-.login-form button {
+button[type="submit"] {
   width: 100%;
-  padding: 10px;
-  background-color: #4f46e5;
+  padding: 0.8rem;
+  background-color: #6A0DAD;
   color: white;
   border: none;
   border-radius: 5px;
+  font-size: 16px;
   cursor: pointer;
+  transition: background-color 0.3s ease;
 }
 
-.login-form button:hover {
-  background-color: #3730a3;
+button[type="submit"]:hover {
+  background-color: #590b90;
 }
 
-.logout-button {
-  margin-top: 20px;
-  padding: 10px;
-  background-color: #ef4444;
-  color: white;
-  border: none;
+.forgot-password {
+  display: block;
+  margin-top: -2rem; /* Ajusta este valor para mover el enlace más cerca del campo de contraseña */
+  margin-bottom: 2rem;
+  color: #39003E;
+  font-weight: 400; /* Regular weight */
+  font-size: 14px; /* Tamaño según parámetros de Figma */
+  text-decoration: none;
+}
+
+.forgot-password:hover {
+  text-decoration: underline;
+}
+
+.login-message {
+  margin-top: auto;
+  font-size: 36px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.registro {
+  color: #6C00AE;
+  font-size: 14px;
+  text-decoration: none;
+  margin-top: 2rem;
+}
+
+.registro:hover {
+  text-decoration: underline;
+}
+
+.footer { 
+  display: flex;
+  align-items: center; /* Alinea el logo y el texto verticalmente */
+  justify-content: center; /* Centra el contenido horizontalmente */
+  margin-top: 1.5rem; /* Espacio entre el contenido principal y el pie de página */
+  color: #39003E; 
+  width: 100%; /* Asegúrate de que el footer ocupe todo el ancho */
+}
+
+.footer-logo {
+  width: 60px; /* Ajusta el tamaño del logo */
+  height: auto; /* Mantiene la proporción del logo */
+  margin-right: 0.5rem; /* Espacio entre el logo y el texto */
+}
+
+.footer-text {
+  font-size: 12px; /* Tamaño del texto */
+  font-weight: 400; /* Peso regular */
+  margin: 0.2rem;
+}
+
+.secondary-footer {
+  position: fixed; /* Fijo para que se mantenga en la esquina inferior derecha */
+  bottom: 10px; /* Ajusta la distancia del fondo */
+  right: 10px; /* Ajusta la distancia del lado derecho */
+  padding: 1rem; /* Espaciado interno */
+  border-radius: 5px; /* Bordes redondeados opcionales */
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1); /* Sombra opcional */
+  text-align: center; /* Centra el texto */
+  z-index: 1000; /* Asegúrate de que esté sobre otros elementos */
+}
+
+.secondary-footer p {
+  margin: 0; /* Elimina márgenes del párrafo */
+}
+
+.social-icons {
+  display: flex; /* Alinea los iconos en línea */
+  justify-content: center; /* Centra los iconos horizontalmente */
+  margin-top: 0.5rem; /* Espaciado entre el texto y los iconos */
+}
+
+.social-logo {
+  width: 40px; /* Ajusta el tamaño de los logos */
+  margin: 0 5px; /* Espaciado entre los logos */
+  transition: transform 0.3s; /* Efecto al pasar el mouse */
+}
+
+.social-logo:hover {
+  transform: scale(1.1); /* Aumenta el logo al pasar el mouse */
+}
+
+.login-message {
+  margin-top: 1rem; /* Espacio arriba del botón */
+  font-size: 12px;
+  font-weight: 600;
+  color: #D8000C; /* Rojo de error */
+  background-color: #FFD2D2; /* Fondo suave de error */
+  border: 1px solid #D8000C;
   border-radius: 5px;
-  cursor: pointer;
+  padding: 0.5rem 0.1rem;
+  text-align: center;
+  width: 100%;
+  max-width: 400px; /* Alineado con los inputs */
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  animation: fadeIn 0.4s ease-in-out; /* Animación suave al aparecer */
 }
 
-.logout-button:hover {
-  background-color: #b91c1c;
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

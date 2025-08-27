@@ -1,52 +1,241 @@
-.navbar {
-  padding: 10px 20px;
-  background-color: #4f46e5;
-  color: white;
+.header {
   display: flex;
-  justify-content: space-between; /* Separar izquierda y derecha */
+  justify-content: space-between;
   align-items: center;
-  position: relative;
+  background-color: #ffffff;
+  background-image: url('../assets/header-background.png');
+  background-size: 45% 100%; /* Ajusta el tamaño de la imagen en función de la altura */
+  background-position: right; /* Mueve la imagen al lado derecho */
+  background-repeat: no-repeat; /* Evita que la imagen se repita */
+  padding: 10px 20px;
+  box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.4); /* Sombra sutil en la parte inferior */
+  position: relative; /* Necesario para la posición absoluta del menú desplegable */
 }
 
-.navbar-left .pagina-nombre {
-  font-weight: bold;
-  font-size: 1.2rem;
+.header-left {
+  flex: 1;
+  text-decoration: none;
 }
 
-.navbar-left a{
-    text-decoration: none;
-    color: white;
+.header-title {
+  padding-left: 1rem;
+  font-size: 20px; /* Ajusta el tamaño del texto según sea necesario */
+  font-weight: 600;
+  color: #9B9B9B; /* Ajusta el color del texto según sea necesario */
+  text-decoration: none;
+}
+body.dark-mode .header-title { 
+  color: #ffffff; /* Color en modo oscuro */
 }
 
-.navbar-right {
-  position: relative;
+.logo-link {
+  display: flex;
+  align-items: center;
+  text-decoration: none; /* Elimina la decoración de texto para el enlace */
 }
 
-.usuario-nombre {
+.profile-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-right: 30px;
   cursor: pointer;
-  font-weight: bold;
+  position: relative;
 }
 
-.dropdown {
+.profile-image-container {
+  display: flex;
+  align-items: center;
+  margin-top: 25px; /* Baja o sube el ícono en relación con otros elementos */
+}
+
+.profile-image {
+  font-size: 45px; /* Ajusta el tamaño del ícono */
+  color: white; /* Cambia el color a blanco */
+  margin-right: 5px;
+}
+
+.arrow-down {
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 5px solid #eae2e2;
+  margin-left: 5px;
+}
+
+.profile-name {
+  margin-top: 10px; /* Aumenta el espacio entre el ícono y el nombre */
+  font-size: 0.8rem;
+  color: #eae2e2;
+}
+
+
+.header-right {
+  display: flex;
+  align-items: center;
+  position: relative; /* Necesario para el dropdown */
+}
+
+.btn-logout-logo {
+  width: 50px; /* Ajusta el tamaño del logo de cerrar sesión */
+  height: 50px;
+  cursor: pointer;
+  margin-left: 20px;
+}
+
+.btn-logout-logo:hover {
+  opacity: 0.8;
+}
+
+.logo-image {
+  width: 100px; /* Ajusta el tamaño según sea necesario */
+  height: auto; /* Mantiene la proporción de la imagen */
+}
+
+.dropdown-menu {
   position: absolute;
-  right: 0; /* Para que quede alineado a la derecha */
-  background-color: white;
-  color: black;
-  margin-top: 5px;
-  border: 1px solid #ccc;
+  top: 90px; /* Ajusta la altura del menú desplegable */
+  right: 0; /* Alinea el menú con el borde derecho */
+  background-color: #ffffff;
   border-radius: 5px;
-  min-width: 120px;
+  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
   z-index: 1000;
+  width: 180px; /* Asegura un ancho consistente */
+  text-align: left; /* Alinea el texto a la izquierda */
+  display: none;
+}
+body.dark-mode .dropdown-menu { 
+  background-color: #172140; /* Color de fondo en modo oscuro */
+  color: #ffffff; /* Color del texto en modo oscuro */
 }
 
-.dropdown button {
-  padding: 8px 15px;
-  width: 100%;
-  border: none;
-  background: none;
-  cursor: pointer;
+.dropdown-menu.show {
+  display: block;
 }
 
-.dropdown button:hover {
+.dropdown-item {
+  padding: 10px;
+  color: #333;
+  text-decoration: none;
+  display: flex;
+  align-items: center; /* Alinea verticalmente los ítems */
+  justify-content: space-between; /* Espacia los elementos horizontalmente */
+}
+body.dark-mode .dropdown-item { 
+  color: #ffffff; /* Color del texto en modo oscuro */
+}
+
+.dropdown-item:hover {
   background-color: #f0f0f0;
+  color: #929292;
+}
+body.dark-mode .dropdown-item:hover {
+  background-color: #555F73;
+  color: #ffffff;
+}
+
+.dark-mode-switch-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* Distribuye el contenido uniformemente */
+  padding: 10px;
+  width: 100%; /* Ocupa todo el ancho del contenedor */
+}
+
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 40px; /* Ajusta el ancho del interruptor */
+  height: 20px; /* Ajusta la altura del interruptor */
+  margin-left: 8px; /* Añade un margen izquierdo para separar el interruptor del texto */
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: 0.4s;
+  border-radius: 20px; /* Ajusta el radio de la esquina para que sea circular */
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 16px; /* Ajusta la altura del círculo */
+  width: 16px; /* Ajusta el ancho del círculo */
+  left: 2px; /* Ajusta la posición horizontal */
+  bottom: 2px; /* Ajusta la posición vertical */
+  background-color: white;
+  transition: 0.4s;
+  border-radius: 50%; /* Asegura que el círculo sea redondo */
+}
+
+input:checked + .slider {
+  background-color: #2196F3;
+}
+
+input:checked + .slider:before {
+  transform: translateX(20px); /* Ajusta la distancia de desplazamiento */
+}
+
+
+.profile-info:hover {
+  opacity: 0.8;
+}
+
+/* Estilos para la campana de notificaciones */
+.notification-bell {
+  position: relative;
+  cursor: pointer;
+  font-size: 24px; /* Tamaño del icono */
+  color: #ffffff; /* Color de la campana, puedes ajustarlo */
+}
+
+.notification-bell .notification-dot {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  width: 10px;
+  height: 10px;
+  background-color: red;
+  border-radius: 50%;
+}
+
+.notification-bell i {
+  font-size: 30px; /* Asegúrate de tener FontAwesome para los iconos */
+  color: white; /* Cambia el color a blanco */
+  margin-top: -10px; /* Ajusta este valor para subir o bajar la campana */
+  vertical-align: middle; /* Asegura que esté alineado con otros elementos en línea */
+}
+
+.notification-bell:hover{
+  opacity: 0.8;
+}
+
+.separator-line {
+  height: 50px; /* Ajusta la altura de la línea según sea necesario */
+  width: 1px;
+  background-color: rgba(255, 255, 255, 0.3); /* Color y opacidad de la línea */
+  margin: 20px; /* Espaciado alrededor de la línea */
+}
+
+.mis-cursos {
+  text-decoration: none;
+}
+.header-menu {
+  display: flex;
+  align-items: center;
+  color: #ffffff;
+  padding-right: 20px;
 }

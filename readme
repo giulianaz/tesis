@@ -7,3 +7,7 @@ uvicorn main:app --reload
 
 cd frontend
 npm start
+
+
+cd API
+uvicorn API:app --reload --port 8001

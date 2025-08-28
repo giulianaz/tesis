@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import Navbar from "./navbar";
 import Editar from '../assets/editar.png';
+import Basura from "../assets/basura.png"
 import Docs from '../assets/docs.png';
 import Evaluacion from '../assets/evaluacion.png';
 import '../styles/curso.css';
@@ -17,6 +18,11 @@ const Curso = () => {
   const [showCrearUnidadForm, setShowCrearUnidadForm] = useState(false);
   const [nuevaUnidadNombre, setNuevaUnidadNombre] = useState("");
   const [evaluaciones, setEvaluaciones] = useState([]);
+  const [showModalEvaluacion, setShowModalEvaluacion] = useState(false);
+  const [nivelSeleccionado, setNivelSeleccionado] = useState("1"); // Por defecto Fácil
+  const [creandoEvaluacion, setCreandoEvaluacion] = useState(false);
+  const [corpusUnidad, setCorpusUnidad] = useState(null);
+
 
   // Cargar curso y unidades
   useEffect(() => {
@@ -81,12 +87,12 @@ const Curso = () => {
               const intentoRes = await fetch(`http://localhost:8000/intento_evaluacion/${evalua.id}`);
               if (intentoRes.ok) {
                 const intentoData = await intentoRes.json();
-                return { ...evalua, intento: intentoData };
+                return { ...evalua, intento: intentoData }; // puede ser null
               }
             } catch (err) {
               console.error("Error al traer intento de evaluación", evalua.id, err);
             }
-            return { ...evalua, intento: null }; // no hay intento
+            return { ...evalua, intento: null }; // fallback
           })
         );
 
@@ -99,6 +105,27 @@ const Curso = () => {
 
     fetchEvaluacionesConIntentos();
   }, [selectedUnidad]);
+
+  useEffect(() => {
+  if (!selectedUnidad) return;
+
+  const fetchCorpus = async () => {
+    try {
+      const res = await fetch(`http://localhost:8000/corpus/verificar/${selectedUnidad}`);
+      if (!res.ok) {
+        setCorpusUnidad(null);
+        return;
+      }
+      const data = await res.json();
+      setCorpusUnidad(data.corpus); // puede ser null o array
+    } catch (err) {
+      console.error("Error al traer corpus:", err);
+      setCorpusUnidad(null);
+    }
+  };
+
+  fetchCorpus();
+}, [selectedUnidad]);
 
   const handleUnidadClick = (unidadId) => {
     setSelectedUnidad(unidadId);
@@ -176,6 +203,56 @@ const Curso = () => {
 
   if (cargando) return <p>Cargando curso...</p>;
   if (!curso) return null;
+
+  const handleCrearEvaluacion = async () => {
+  if (!selectedUnidad) return;
+  setCreandoEvaluacion(true);
+
+  try {
+    const response = await fetch(`http://localhost:8000/evaluacion/unidad/${selectedUnidad}?nivel=${nivelSeleccionado}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" }
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      alert("Error: " + errorData.detail);
+      setCreandoEvaluacion(false);
+      return;
+    }
+
+    const data = await response.json();
+    alert(`Evaluación creada correctamente: ${data.nombre}`);
+    setShowModalEvaluacion(false);
+    // Recargar evaluaciones
+    setEvaluaciones(prev => [...prev, { ...data, nivel: parseInt(nivelSeleccionado), intento: null }]);
+  } catch (err) {
+    console.error(err);
+    alert("Error al crear evaluación");
+  } finally {
+    setCreandoEvaluacion(false);
+  }
+};
+
+const handleEliminarEvaluacion = async (evaluacionId) => {
+  if (!window.confirm("¿Seguro quieres eliminar esta evaluación?")) return;
+
+  try {
+    const response = await fetch(`http://localhost:8000/evaluacion/${evaluacionId}`, { method: "DELETE" });
+    if (response.ok) {
+      setEvaluaciones(prev => prev.filter(e => e.id !== evaluacionId));
+      alert("Evaluación eliminada correctamente");
+    } else {
+      const errorData = await response.json();
+      alert("Error: " + errorData.detail);
+    }
+  } catch (err) {
+    console.error(err);
+    alert("Error al eliminar evaluación");
+  }
+};
+
+
 
   return (
     <div className="container-profesor">
@@ -255,10 +332,15 @@ const Curso = () => {
 
                 <div className='ver-cosas'>
                   <div className="ver-botones">
-                    <Link to={``} className="ver-corpus">
+                    <button
+                      className="ver-corpus"
+                      onClick={() => setShowModalEvaluacion(true)}
+                      disabled={!corpusUnidad || corpusUnidad.length === 0}
+                      title={!corpusUnidad || corpusUnidad.length === 0 ? "Debe haber al menos un material subido" : ""}
+                    >
                       <img src={Evaluacion} alt="Ícono Evaluación" className="icono-evaluacion" />
                       Nueva Evaluación
-                    </Link>
+                    </button>
                   </div>
                   <div className="ver-botones">
                     <Link to={`/corpus/${selectedUnidad}`} className="ver-corpus">
@@ -288,17 +370,34 @@ const Curso = () => {
                           <div className="evaluacion-info" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px' }}>
                             {intento ? (
                               <>
-                                <span style={{ color: intento.puntaje_obtenido < 70 ? 'red' : '#2F7A99', fontWeight: 'bold' }}>
-                                  {intento.puntaje_obtenido}%
-                                </span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                  <span style={{ color: intento.puntaje_obtenido < 70 ? 'red' : '#2F7A99', fontWeight: 'bold' }}>
+                                    {intento.puntaje_obtenido}%
+                                  </span>
+                                  <img
+                                    src={Basura}
+                                    alt="Eliminar evaluación"
+                                    className="icono-basura"
+                                    onClick={() => handleEliminarEvaluacion(evalua.id)}
+                                  />
+                                </div>
                                 <Link to={`/evaluacion/${evalua.id}`} className="btn-ver-evaluacion">
                                   Ver Evaluación
                                 </Link>
                               </>
                             ) : (
-                              <Link to={`/evaluacion/${evalua.id}`} className="btn-iniciar">Iniciar Evaluación</Link>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <Link to={`/evaluacion/${evalua.id}`} className="btn-iniciar">Iniciar Evaluación</Link>
+                                <img
+                                  src={Basura}
+                                  alt="Eliminar evaluación"
+                                  className="icono-basura"
+                                  onClick={() => handleEliminarEvaluacion(evalua.id)}
+                                />
+                              </div>
                             )}
                           </div>
+
                         </div>
                       </div>
                     )
@@ -312,6 +411,30 @@ const Curso = () => {
           )}
         </div>
       </div>
+      {showModalEvaluacion && (
+        <div className="modal-evaluacion-backdrop">
+          <div className="modal-evaluacion">
+            <h3>Generar nueva evaluación</h3>
+            <p>Se generará una evaluación en base al material de clases subido para esta unidad. 
+              El nivel se recomienda según tu desempeño anterior.</p>
+
+            <label>Nivel de la evaluación:</label>
+            <select value={nivelSeleccionado} onChange={(e) => setNivelSeleccionado(e.target.value)}>
+              <option value="1">Fácil</option>
+              <option value="2">Medio</option>
+              <option value="3">Difícil</option>
+            </select>
+
+            <div className="modal-buttons">
+              <button onClick={handleCrearEvaluacion} disabled={creandoEvaluacion}>
+                {creandoEvaluacion ? "Creando..." : "Crear Evaluación"}
+              </button>
+              <button onClick={() => setShowModalEvaluacion(false)}>Cancelar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

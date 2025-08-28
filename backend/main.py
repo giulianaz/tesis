@@ -13,7 +13,7 @@ from datetime import datetime
 import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-from API.API import crear_assistant, crear_vector, subir_archivo, generar_preguntas, borrar_assistant, borrar_vector, subir_archivo_a_vector, borrar_archivo
+from API.API import crear_assistant, crear_vector, subir_archivo, generar_preguntas, borrar_assistant, borrar_vector, subir_archivo_a_vector, borrar_archivo, generar_preguntas, interpretar_mensajes, interpretar_mensaje_separado
 
 from API.API import client, instrucciones, modelo
 
@@ -155,25 +155,48 @@ async def borrar_curso(curso_id: int, db: Session = Depends(get_db)):
     if not curso:
         raise HTTPException(status_code=404, detail="Curso no encontrado")
     
-    # Borrar assistants y vectores de cada unidad asociada
+    errores_globales = {}
+
     for unidad in curso.unidades:
+        # 1️⃣ Borrar assistants
         if unidad.assistant_id:
             try:
                 await borrar_assistant(unidad.assistant_id)
             except HTTPException as e:
-                # Puedes loguearlo y continuar
                 print(f"No se pudo borrar assistant {unidad.assistant_id}: {e.detail}")
+                errores_globales[f"assistant_{unidad.assistant_id}"] = e.detail
+
+        # 2️⃣ Borrar vector de la unidad
         if unidad.vector_id:
             try:
                 await borrar_vector(unidad.vector_id)
             except HTTPException as e:
                 print(f"No se pudo borrar vector {unidad.vector_id}: {e.detail}")
-    
-    # Borrar curso (las unidades se eliminan por cascada si la relación está configurada)
-    db.delete(curso)
-    db.commit()
-    
-    return {"detail": f"Curso '{curso.nombre}' eliminado junto con sus unidades, assistants y vectores"}
+                errores_globales[f"vector_{unidad.vector_id}"] = e.detail
+
+        # 3️⃣ Borrar archivos de la unidad usando el vector de la unidad
+        for corpus in unidad.corpus:
+            if corpus.material:  # solo necesitamos el file_id
+                resultado = borrar_archivo(corpus.material, unidad.vector_id)
+                if resultado.get("errores"):
+                    errores_globales[f"archivo_{corpus.id}"] = resultado["errores"]
+
+    # 4️⃣ Borrar curso (las unidades se eliminan por cascada si la relación está configurada)
+    try:
+        db.delete(curso)
+        db.commit()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"No se pudo eliminar curso: {str(e)}")
+
+    if errores_globales:
+        return {
+            "detail": f"Curso '{curso.nombre}' eliminado, pero hubo errores en algunos assistants, vectores o archivos",
+            "errores": errores_globales
+        }
+
+    return {"detail": f"Curso '{curso.nombre}' eliminado correctamente junto con unidades, assistants, vectores y archivos"}
+
+
 
 # Schema para actualizar curso
 class CursoUpdate(BaseModel):
@@ -413,7 +436,7 @@ class IntentoEvaluacionOut(BaseModel):
     class Config:
         orm_mode = True
 
-@app.get("/intento_evaluacion/{id_evaluacion}", response_model=IntentoEvaluacionOut)
+@app.get("/intento_evaluacion/{id_evaluacion}", response_model=Optional[IntentoEvaluacionOut])
 def obtener_intento_por_evaluacion(id_evaluacion: int, db: Session = Depends(get_db)):
     intento = db.query(IntentoEvaluacion).filter(IntentoEvaluacion.id_evaluacion == id_evaluacion).first()
     
@@ -460,10 +483,18 @@ class PreguntasEvaluacionOut(BaseModel):
         orm_mode = True
 
 @app.get("/preguntas/evaluacion/{id_evaluacion}", response_model=PreguntasEvaluacionOut)
-def obtener_preguntas_por_evaluacion(id_evaluacion: int, db: Session = Depends(get_db)):
+def obtener_preguntas_por_evaluacion(id_evaluacion: int, usuario_id: int = Query(...), db: Session = Depends(get_db)):
     evaluacion = db.query(Evaluacion).filter(Evaluacion.id == id_evaluacion).first()
     if not evaluacion:
         raise HTTPException(status_code=404, detail="Evaluación no encontrada")
+
+    unidad = evaluacion.unidad
+    if not unidad or not unidad.curso:
+        raise HTTPException(status_code=404, detail="Curso no encontrado")
+
+    # Verificar que el usuario sea el dueño del curso
+    if unidad.curso.id_usuario != usuario_id:
+        raise HTTPException(status_code=403, detail="No estás inscrito en este curso")
 
     # Preguntas de alternativas
     alternativas = db.query(Alternativa).filter(Alternativa.id_evaluacion == id_evaluacion).all()
@@ -471,21 +502,14 @@ def obtener_preguntas_por_evaluacion(id_evaluacion: int, db: Session = Depends(g
         PreguntaAlternativaOut(
             id=a.id,
             enunciado=a.enunciado,
-            opciones={
-                "a": a.respuesta_a,
-                "b": a.respuesta_b,
-                "c": a.respuesta_c,
-                "d": a.respuesta_d
-            }
+            opciones={"a": a.respuesta_a, "b": a.respuesta_b, "c": a.respuesta_c, "d": a.respuesta_d}
         )
         for a in alternativas
     ]
 
-    # Preguntas verdadero/falso
     vfs = db.query(VF).filter(VF.id_evaluacion == id_evaluacion).all()
     preguntas_vf = [PreguntaVFOut(id=v.id, enunciado=v.enunciado) for v in vfs]
 
-    # Preguntas desarrollo
     desarrollos = db.query(Desarrollo).filter(Desarrollo.id_evaluacion == id_evaluacion).all()
     preguntas_desarrollo = [PreguntaDesarrolloOut(id=d.id, enunciado=d.enunciado) for d in desarrollos]
 
@@ -494,11 +518,12 @@ def obtener_preguntas_por_evaluacion(id_evaluacion: int, db: Session = Depends(g
         nombre=evaluacion.nombre,
         descripcion=evaluacion.descripcion,
         nivel=evaluacion.nivel,
-        id_curso=evaluacion.unidad.curso.id if evaluacion.unidad and evaluacion.unidad.curso else None,  # <-- agregado
+        id_curso=unidad.id_curso,
         preguntas_alternativas=preguntas_alternativas,
         preguntas_vf=preguntas_vf,
         preguntas_desarrollo=preguntas_desarrollo
     )
+
 class CorpusOut(BaseModel):
     id: int
     nombre: str
@@ -512,20 +537,52 @@ class CorpusWithCurso(BaseModel):
     vector_id: Optional[str]  # <- agregar vector_id
     corpus: List[CorpusOut]
 
-@app.get("/corpus/unidad/{unidad_id}", response_model=CorpusWithCurso)
-def obtener_corpus_por_unidad(unidad_id: int, db: Session = Depends(get_db)):
-    corpus = db.query(Corpus).filter(Corpus.id_unidad == unidad_id).all()
-    if not corpus:
-        raise HTTPException(status_code=404, detail="No hay corpus para esta unidad")
-
+def verificar_acceso_usuario(usuario_id: int, unidad_id: int, db: Session):
+    """
+    Verifica si el usuario tiene acceso a la unidad mediante el curso.
+    """
     unidad = db.query(Unidad).filter(Unidad.id == unidad_id).first()
     if not unidad:
         raise HTTPException(status_code=404, detail="Unidad no encontrada")
 
+    # Verifica que el usuario sea dueño del curso al que pertenece la unidad
+    curso = db.query(Curso).filter(Curso.id == unidad.id_curso, Curso.id_usuario == usuario_id).first()
+    if not curso:
+        raise HTTPException(status_code=403, detail="No tienes acceso a este curso")
+    
+    return unidad
+
+@app.get("/corpus/unidad/{unidad_id}", response_model=CorpusWithCurso)
+def obtener_corpus_por_unidad(unidad_id: int, usuario_id: int, db: Session = Depends(get_db)):
+    """
+    Devuelve el corpus de la unidad solo si el usuario está inscrito (es dueño del curso)
+    """
+    unidad = verificar_acceso_usuario(usuario_id, unidad_id, db)
+    
+    corpus = db.query(Corpus).filter(Corpus.id_unidad == unidad_id).all()
+
     return {
         "curso_id": unidad.id_curso,
-        "vector_id": unidad.vector_id,  # <- agregamos vector_id
+        "vector_id": unidad.vector_id,
         "corpus": corpus
+    }
+
+
+@app.get("/corpus/verificar/{unidad_id}", response_model=CorpusWithCurso)
+def verificar_corpus_por_unidad(unidad_id: int, db: Session = Depends(get_db)):
+    # Primero buscamos la unidad
+    unidad = db.query(Unidad).filter(Unidad.id == unidad_id).first()
+    if not unidad:
+        raise HTTPException(status_code=404, detail="Unidad no encontrada")
+    
+    # Buscamos corpus asociados a esa unidad
+    corpus = db.query(Corpus).filter(Corpus.id_unidad == unidad_id).all()
+
+    # Retornamos null si no hay corpus
+    return {
+        "curso_id": unidad.id_curso,
+        "vector_id": unidad.vector_id,
+        "corpus": corpus if corpus else None
     }
 
 
@@ -566,35 +623,27 @@ async def crear_corpus(unidad_id: int, archivo: UploadFile = File(...), db: Sess
     return {"message": "Archivo subido correctamente", "file_id": file_id}
 
 @app.delete("/corpus/{corpus_id}")
-async def eliminar_corpus(
+def eliminar_corpus(
     corpus_id: int,
     file_id: str = Query(..., description="ID del archivo en la API"),
     vector_id: str = Query(..., description="ID del vector store"),
     db: Session = Depends(get_db)
 ):
-    # 1️⃣ Buscar el registro en la DB
     corpus = db.query(Corpus).filter(Corpus.id == corpus_id).first()
     if not corpus:
         raise HTTPException(status_code=404, detail="Archivo no encontrado en la base de datos")
 
-    errores = {}
+    # Borrar API y vector
+    resultado = borrar_archivo(file_id=file_id, vector_id=vector_id)
+    errores = resultado.get('errores', {})
 
-    # 2️⃣ Borrar archivos de la API y del vector store
-    try:
-        resultado = await borrar_archivo(file_id=file_id, vector_id=vector_id)
-        if 'errores' in resultado:
-            errores = resultado['errores']
-    except Exception as e:
-        errores['borrar_archivo'] = str(e)
-
-    # 3️⃣ Borrar el registro de la DB aunque haya errores en la API/vector
+    # Borrar DB
     try:
         db.delete(corpus)
         db.commit()
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"No se pudo eliminar de la base de datos: {e}")
 
-    # 4️⃣ Retornar resultado final
     if errores:
         return {
             "detail": f"Archivo '{corpus.nombre}' eliminado de la base de datos, pero hubo errores al borrar API/vector.",
@@ -602,3 +651,109 @@ async def eliminar_corpus(
         }
 
     return {"detail": f"Archivo '{corpus.nombre}' eliminado correctamente de API, vector y base de datos"}
+
+CANTIDADES_POR_NIVEL = {
+    1: {"vf": 2, "desarrollo": 1, "alternativas": 2},  # Fácil
+    2: {"vf": 2, "desarrollo": 2, "alternativas": 2},  # Medio
+    3: {"vf": 1, "desarrollo": 3, "alternativas": 1}   # Difícil
+}
+
+@app.post("/evaluacion/unidad/{unidad_id}")
+async def crear_evaluacion(unidad_id: int, nivel: int, db: Session = Depends(get_db)):
+    # Validar unidad
+    unidad = db.query(Unidad).filter(Unidad.id == unidad_id).first()
+    if not unidad:
+        raise HTTPException(status_code=404, detail="Unidad no encontrada")
+
+    if nivel not in [1, 2, 3]:
+        raise HTTPException(status_code=400, detail="Nivel inválido")
+
+    cantidades = CANTIDADES_POR_NIVEL[nivel]
+
+    # Generar preguntas con la IA
+    resultado_thread = await generar_preguntas(
+        assistant_id=unidad.assistant_id,
+        vf=cantidades["vf"],
+        desarrollo=cantidades["desarrollo"],
+        alternativas=cantidades["alternativas"],
+        dificultad={1: "facil", 2: "medio", 3: "dificil"}[nivel]
+    )
+
+    resultado_str, thread_id = resultado_thread
+
+    # Traer todos los mensajes de la conversación (sin await)
+    messages = client.beta.threads.messages.list(thread_id=thread_id)
+    mensaje_crudo = interpretar_mensajes(messages)
+
+    # Separar nombre, descripción y preguntas
+    resultado = interpretar_mensaje_separado(mensaje_crudo)
+
+    # Crear evaluación
+    evaluacion = Evaluacion(
+        nombre=resultado.get("nombre", f"Evaluacion Nivel {nivel}"),
+        descripcion=resultado.get("descripcion", ""),
+        preguntas_vf=cantidades["vf"],
+        preguntas_desarrollo=cantidades["desarrollo"],
+        preguntas_alternativas=cantidades["alternativas"],
+        nivel=nivel,
+        puntaje_total=0,
+        id_unidad=unidad.id
+    )
+    db.add(evaluacion)
+    db.commit()
+    db.refresh(evaluacion)
+
+    # Guardar preguntas en sus modelos
+    for pregunta in resultado.get("preguntas", []):
+        if pregunta["tipo"] == "vf":
+            db.add(VF(
+                enunciado=pregunta["enunciado"],
+                correcta=pregunta["correcta"],
+                puntaje=1,
+                nivel_bloom=nivel,
+                id_evaluacion=evaluacion.id
+            ))
+        elif pregunta["tipo"] == "desarrollo":
+            db.add(Desarrollo(
+                enunciado=pregunta["enunciado"],
+                respuesta=pregunta["respuesta"],
+                puntaje=2,
+                nivel_bloom=nivel,
+                id_evaluacion=evaluacion.id
+            ))
+        elif pregunta["tipo"] == "alternativas":
+            db.add(Alternativa(
+                enunciado=pregunta["enunciado"],
+                respuesta_a=f"a) {pregunta['opciones'].get('a')}",
+                respuesta_b=f"b) {pregunta['opciones'].get('b')}",
+                respuesta_c=f"c) {pregunta['opciones'].get('c')}",
+                respuesta_d=f"d) {pregunta['opciones'].get('d')}",
+                correcta=pregunta["correcta"],
+                puntaje=1,
+                nivel_bloom=nivel,
+                id_evaluacion=evaluacion.id
+            ))
+    db.commit()
+
+    # Devolver el objeto completo de la evaluación
+    return {
+        "id": evaluacion.id,
+        "nombre": evaluacion.nombre,
+        "descripcion": evaluacion.descripcion,
+        "nivel": evaluacion.nivel,
+        "preguntas_vf": evaluacion.preguntas_vf,
+        "preguntas_desarrollo": evaluacion.preguntas_desarrollo,
+        "preguntas_alternativas": evaluacion.preguntas_alternativas,
+        "id_unidad": evaluacion.id_unidad
+    }
+
+
+@app.delete("/evaluacion/{evaluacion_id}")
+def eliminar_evaluacion(evaluacion_id: int, db: Session = Depends(get_db)):
+    evaluacion = db.query(Evaluacion).filter(Evaluacion.id == evaluacion_id).first()
+    if not evaluacion:
+        raise HTTPException(status_code=404, detail="Evaluación no encontrada")
+    
+    db.delete(evaluacion)
+    db.commit()
+    return {"detail": f"Evaluación '{evaluacion.nombre}' eliminada correctamente"}

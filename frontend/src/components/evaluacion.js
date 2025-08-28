@@ -1,45 +1,64 @@
 import React, { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
+import axios from "axios";
 import Navbar from "./navbar";
 import "../styles/evaluacion.css";
 
 const Evaluacion = () => {
   const { idEvaluacion } = useParams();
+  const navigate = useNavigate();
   const [evaluacion, setEvaluacion] = useState(null);
   const [hayIntento, setHayIntento] = useState(false);
   const [mensaje, setMensaje] = useState("");
+  const [cursoId, setCursoId] = useState(null);
 
   useEffect(() => {
-    if (!idEvaluacion) return;
+    const verificarUsuario = async () => {
+      const usuarioStr = localStorage.getItem("usuario");
+      if (!usuarioStr) {
+        navigate("/login");
+        return;
+      }
+      const usuario = JSON.parse(usuarioStr);
 
-    const fetchData = async () => {
       try {
         // 1️⃣ Verificar si hay intento
-        const intentoRes = await fetch(`http://localhost:8000/intento_evaluacion/${idEvaluacion}`);
+        const intentoRes = await axios.get(`http://localhost:8000/intento_evaluacion/${idEvaluacion}`, {
+          params: { usuario_id: usuario.id }
+        });
 
-        if (intentoRes.ok) {
-          // Existe intento
+        if (intentoRes.status === 200) {
           setHayIntento(true);
           setMensaje("Ya completaste esta evaluación");
           return;
         }
+      } catch (err) {
+        // No hay intento, continuamos
+      }
 
-        // 2️⃣ Si no hay intento, cargar la evaluación
-        const evalRes = await fetch(`http://localhost:8000/preguntas/evaluacion/${idEvaluacion}`);
-        if (!evalRes.ok) {
-          setMensaje("Error al cargar preguntas: " + evalRes.statusText);
+      try {
+        // 2️⃣ Traer preguntas completas
+        const evalRes = await axios.get(`http://localhost:8000/preguntas/evaluacion/${idEvaluacion}`, {
+          params: { usuario_id: usuario.id } // backend debe validar inscripción
+        });
+
+        if (evalRes.data.error) {
+          alert("No estás inscrito en este curso.");
+          navigate("/");
           return;
         }
-        const evalData = await evalRes.json();
-        setEvaluacion(evalData);
+
+        setEvaluacion(evalRes.data);
+        setCursoId(evalRes.data.id_curso);
       } catch (err) {
-        console.error(err);
-        setMensaje("Error de conexión con el servidor");
+        console.error("Error al cargar evaluación:", err);
+        alert("No tienes acceso a esta evaluación.");
+        navigate("/");
       }
     };
 
-    fetchData();
-  }, [idEvaluacion]);
+    if (idEvaluacion) verificarUsuario();
+  }, [idEvaluacion, navigate]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -59,8 +78,8 @@ const Evaluacion = () => {
     <div>
       <Navbar />
       <div className='volver'>
-        {evaluacion?.id_curso && (
-          <Link to={`/curso/${evaluacion.id_curso}`} className="link-back">
+        {cursoId && (
+          <Link to={`/curso/${cursoId}`} className="link-back">
             🡐 Volver
           </Link>
         )}

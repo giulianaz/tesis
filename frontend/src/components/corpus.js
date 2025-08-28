@@ -18,79 +18,94 @@ const Corpus = () => {
   const [cursoId, setCursoId] = useState(null);
 
   // Comprobar usuario en sesión
-  useEffect(() => {
-    const usuario = localStorage.getItem("usuario");
-    if (!usuario) {
+useEffect(() => {
+  const verificarUsuario = async () => {
+    const usuarioStr = localStorage.getItem("usuario");
+    if (!usuarioStr) {
       navigate("/login");
+      return;
     }
-  }, [navigate]);
+    const usuario = JSON.parse(usuarioStr);
 
-  // Obtener corpus de la unidad
-  useEffect(() => {
-    const fetchCorpus = async () => {
-      try {
-        const response = await axios.get(`http://localhost:8000/corpus/unidad/${unidadId}`);
-        // Ahora cada c tendrá: id, nombre, material (file_id), vector_id
-        const corpusConIds = response.data.corpus.map(c => ({
-          ...c,
-          vector_id: response.data.vector_id || null  // si quieres pasar vector_id de unidad
-        }));
-        setCorpus(corpusConIds);
-        setCursoId(response.data.curso_id);
-      } catch (error) {
-        console.error('Error fetching corpus:', error);
-        setCorpus([]);
-      } finally {
-        setLoading(false);
+    try {
+      const response = await axios.get(`http://localhost:8000/corpus/unidad/${unidadId}`, {
+        params: { usuario_id: usuario.id } // <-- backend debe validar inscripción
+      });
+
+      // Si backend indica que el usuario no está inscrito
+      if (response.data.error) {
+        alert("No estás inscrito en este curso.");
+        navigate("/");
+        return;
       }
-    };
 
-    if (unidadId) fetchCorpus();
-  }, [unidadId]);
+      const corpusConIds = response.data.corpus?.map(c => ({
+        ...c,
+        vector_id: response.data.vector_id || null
+      })) || [];
+
+      setCorpus(corpusConIds);
+      setCursoId(response.data.curso_id);
+    } catch (err) {
+      console.error("Error al verificar usuario o traer corpus:", err);
+      alert("No tienes acceso a este curso.");
+      navigate("/");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (unidadId) verificarUsuario();
+}, [unidadId, navigate]);
+
 
   const handleFileChange = (event) => {
     setSelectedFiles(Array.from(event.target.files));
   };
 
-  const handleAgregarCorpus = async (event) => {
-    event.preventDefault();
-    if (selectedFiles.length === 0) return;
+const handleAgregarCorpus = async (event) => {
+  event.preventDefault();
+  if (selectedFiles.length === 0) return;
 
-    setIsUploadingNew(true);
+  setIsUploadingNew(true);
 
-    try {
-      // Espera 1.5s para simular el spinner
-      await new Promise(resolve => setTimeout(resolve, 1500));
+  try {
+    // Espera 1.5s para simular el spinner
+    await new Promise(resolve => setTimeout(resolve, 1500));
 
-      // Subir archivos al backend
-      for (const file of selectedFiles) {
-        const formData = new FormData();
-        formData.append("archivo", file);
+    // Subir archivos al backend
+    for (const file of selectedFiles) {
+      const formData = new FormData();
+      formData.append("archivo", file);
 
-        await axios.post(`http://localhost:8000/corpus/unidad/${unidadId}`, formData, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
-      }
-
-      // Actualizar lista de corpus después de subir
-      const response = await axios.get(`http://localhost:8000/corpus/unidad/${unidadId}`);
-      const corpusConIds = response.data.corpus.map(c => ({
-        ...c,
-        vector_id: response.data.vector_id || null
-      }));
-      setCorpus(corpusConIds);
-
-      alert(`Archivo(s) "${selectedFiles.map(f => f.name).join(', ')}" subido.`);
-      setSelectedFiles([]);
-      setShowCrearCorpusForm(false);
-      setSuccessMessage('Archivo(s) subido(s) correctamente.');
-    } catch (error) {
-      console.error("Error al subir archivos:", error);
-      setSuccessMessage("Error al subir los archivos.");
-    } finally {
-      setIsUploadingNew(false);
+      await axios.post(`http://localhost:8000/corpus/unidad/${unidadId}`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
     }
-  };
+
+    // Actualizar lista de corpus después de subir
+    const response = await axios.get(`http://localhost:8000/corpus/unidad/${unidadId}`);
+    const corpusConIds = response.data.corpus.map(c => ({
+      ...c,
+      vector_id: response.data.vector_id || null
+    }));
+    setCorpus(corpusConIds);
+
+    // ⚡ Reasignar cursoId para que la flecha de volver siga apareciendo
+    setCursoId(response.data.curso_id);
+
+    alert(`Archivo(s) "${selectedFiles.map(f => f.name).join(', ')}" subido.`);
+    setSelectedFiles([]);
+    setShowCrearCorpusForm(false);
+    setSuccessMessage('Archivo(s) subido(s) correctamente.');
+  } catch (error) {
+    console.error("Error al subir archivos:", error);
+    setSuccessMessage("Error al subir los archivos.");
+  } finally {
+    setIsUploadingNew(false);
+  }
+};
+
 
   const handleEliminarCorpus = async (corpusId, fileId, vectorId) => {
     if (!window.confirm("¿Estás seguro de que deseas eliminar este archivo?")) return;

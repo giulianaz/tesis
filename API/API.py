@@ -171,39 +171,56 @@ async def actualizar_archivo(assistant_id: str, vector_id: str, file_id: str, ar
     file_id_nuevo = await subir_archivo(assistant_id, vector_id, archivo)
     return file_id_nuevo
 
-async def borrar_archivo(file_id: str, vector_id: str):
+def borrar_archivo(file_id: str, vector_id: str):
+    errores = {}
     try:
-        # 1️⃣ Borrar todos los vectores del vector store
+        # Borrar todos los vectores del vector store
         client.vectors.delete(vector_store_id=vector_id)
-
-        # 2️⃣ Borrar el archivo de la API de OpenAI
-        client.files.delete(file_id)
-
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to delete file/vector: {e}")
+        errores['vector'] = str(e)
+
+    try:
+        # Borrar el archivo de la API de OpenAI
+        client.files.delete(file_id)
+    except Exception as e:
+        errores['archivo'] = str(e)
+
+    return {"errores": errores}
+
 
 
 
 
 # Generación de preguntas
 async def generar_preguntas(assistant_id: str, vf: str, desarrollo: str, alternativas: str, dificultad: str):
-    prompt = f'''Generame preguntas segun su tipo que seran indicadas a continuacion. Las preguntas deben basarse exclusivamente en la información contenida en los archivos proporcionados en el vector_store, pero sin mencionar los nombres de los documentos. Cada pregunta debe abordar un concepto aprendido en los archivos. Las preguntas deben tener una dificultad {dificultad}, cada tipo de pregunta deberá seguir el siguiente formato: 
+    prompt = f'''Generame preguntas segun su tipo que seran indicadas a continuacion. 
+        Las preguntas deben basarse exclusivamente en la información contenida en los archivos proporcionados en el vector_store, 
+        pero sin mencionar los nombres de los documentos. 
+        Cada pregunta debe abordar un concepto aprendido en los archivos. 
+        Las preguntas deben tener una dificultad {dificultad}, cada tipo de pregunta deberá seguir el siguiente formato: 
 
-    1. **Tipo: Verdadero o Falso** deben ser {vf} preguntas
-    Pregunta: Debe comenzar con "Pregunta_vf:" seguida del enunciado.
-    Alternativa correcta: Debe ser indicada con "Alternativa correcta:" seguida de "V" para Verdadero o "F" para Falso.
+        Nombre: Debe comenzar con "Nombre:" seguido de un título corto y formal de la evaluación.
+        Descripcion: Debe comenzar con "Descripcion:" seguido de un resumen breve (2–3 líneas) sobre el contenido general de la evaluación.
 
-    2. **Tipo: Desarrollo** deben ser {desarrollo} preguntas
-    Pregunta: Debe comenzar con "Pregunta_desarrollo:" seguida del enunciado.
-    Respuesta: Debe comenzar con "Respuesta:" seguida de una breve respuesta.
+        1. Tipo: Verdadero o Falso → deben ser {vf} preguntas
+        Pregunta: Debe comenzar con "Pregunta_vf:" seguida del enunciado.
+        Alternativa correcta: Debe ser indicada con "Alternativa correcta:" seguida de "V" para Verdadero o "F" para Falso.
 
-    3. **Tipo: Alternativas** deben ser {alternativas} preguntas
-    Pregunta: Debe comenzar con "Pregunta_alternativas:" seguida del enunciado de la pregunta.
-    Alternativas: Cada alternativa debe estar en una nueva línea, comenzando con una letra en minúscula seguida de un paréntesis, por ejemplo, "a)", "b)", hasta la "e)", y luego el texto de la alternativa.
-    Alternativa correcta: Debe comenzar con "Alternativa correcta:" seguida de la letra correspondiente a la opción correcta (en minúscula).
+        2. Tipo: Desarrollo → deben ser {desarrollo} preguntas
+        Pregunta: Debe comenzar con "Pregunta_desarrollo:" seguida del enunciado.
+        Respuesta: Debe comenzar con "Respuesta:" seguida de una breve respuesta.
 
-    Utiliza un tono formal y no incluyas introducciones ni comentarios adicionales ,no menciones explícitamente los documentos en las preguntas, solo proporciona la lista anidada. No incluyas formatos especiales como **, - ,o markdown en general, solamente devuelve texto plano. Si la cantidad de preguntas es 0 no generes ese tipo de preguntas'''
+        3. Tipo: Alternativas → deben ser {alternativas} preguntas
+        Pregunta: Debe comenzar con "Pregunta_alternativas:" seguida del enunciado de la pregunta.
+        Alternativas: Cada alternativa debe estar en una nueva línea, comenzando con una letra en minúscula seguida de un paréntesis, 
+        por ejemplo, "a)", "b)", hasta la "d)", y luego el texto de la alternativa.
+        Alternativa correcta: Debe comenzar con "Alternativa correcta:" seguida de la letra correspondiente a la opción correcta (en minúscula).
 
+        Utiliza un tono formal y no incluyas introducciones ni comentarios adicionales, 
+        no menciones explícitamente los documentos en las preguntas, 
+        solo proporciona la lista anidada. 
+        No incluyas formatos especiales como **, -, o markdown en general, solamente devuelve texto plano. 
+        Si la cantidad de preguntas es 0 no generes ese tipo de preguntas'''
     max_retries = 4
     retries = 0
     thread_retries = 0
@@ -236,5 +253,67 @@ async def generar_preguntas(assistant_id: str, vf: str, desarrollo: str, alterna
 
 def interpretar_mensajes(messages):
     for thread_message in messages.data:
+        # Iterate over the 'content' attribute of the ThreadMessage, which is a list
         for content_item in thread_message.content:
-            return content_item.text.value
+            # Assuming content_item is a MessageContentText object with a 'text' attribute
+            # and that 'text' has a 'value' attribute, print it
+            return(content_item.text.value)
+        
+def interpretar_mensaje_separado(mensaje_crudo: str):
+    """
+    Convierte el string crudo en un dict con:
+    nombre, descripcion y lista de preguntas (vf, desarrollo, alternativas)
+    """
+    # Nombre
+    nombre_match = re.search(r"Nombre:\s*(.+)", mensaje_crudo)
+    nombre = nombre_match.group(1).strip() if nombre_match else f"Evaluacion"
+
+    # Descripción
+    descripcion_match = re.search(r"Descripcion:\s*(.+)", mensaje_crudo)
+    descripcion = descripcion_match.group(1).strip() if descripcion_match else ""
+
+    preguntas = []
+
+    # VF
+    vf_pattern = re.compile(r"Pregunta_vf:(.+?)Alternativa correcta:\s*([VF])", re.DOTALL)
+    for match in vf_pattern.finditer(mensaje_crudo):
+        preguntas.append({
+            "tipo": "vf",
+            "enunciado": match.group(1).strip(),
+            "correcta": match.group(2).strip()
+        })
+
+    # Desarrollo
+    des_pattern = re.compile(r"Pregunta_desarrollo:(.+?)Respuesta:\s*(.+)", re.DOTALL)
+    for match in des_pattern.finditer(mensaje_crudo):
+        preguntas.append({
+            "tipo": "desarrollo",
+            "enunciado": match.group(1).strip(),
+            "respuesta": match.group(2).strip()
+        })
+
+    # Alternativas
+    alt_pattern = re.compile(r"Pregunta_alternativas:(.+?)Alternativa correcta:\s*([a-d])", re.DOTALL)
+    for match in alt_pattern.finditer(mensaje_crudo):
+        enunciado_completo = match.group(1).strip()
+        correcta = match.group(2).strip()
+        # Extraer opciones
+        opciones = {}
+        for letra in ['a', 'b', 'c', 'd']:
+            op_match = re.search(rf"{letra}\)\s*(.+)", enunciado_completo)
+            if op_match:
+                opciones[letra] = op_match.group(1).strip()
+        # Limpiar enunciado de las opciones
+        enunciado_limpio = re.split(r"(a\)|b\)|c\)|d\))", enunciado_completo)[0].strip()
+        preguntas.append({
+            "tipo": "alternativas",
+            "enunciado": enunciado_limpio,
+            "opciones": opciones,
+            "correcta": correcta
+        })
+
+    return {
+        "nombre": nombre,
+        "descripcion": descripcion,
+        "preguntas": preguntas
+    }

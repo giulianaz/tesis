@@ -1599,6 +1599,10 @@ body.dark-mode .fechas-actividad input[type="date"] {
   text-decoration: none; /* Opcional, si quieres quitar subrayado */
 }
 
+.ver-corpus:hover{
+  opacity: 0.8;
+}
+
 .icono-foro {
   width: 24px; /* Ajusta tamaño del icono si quieres */
   height: 24px;

@@ -6,7 +6,7 @@ from crud import crear_usuario, obtener_usuario_por_correo, login_usuario
 from typing import Optional
 from models import Curso, Unidad, Usuario, Evaluacion, Alternativa, VF, Desarrollo, IntentoEvaluacion, Corpus
 from typing import List
-from sqlalchemy import select
+from sqlalchemy import select, func
 from pydantic import EmailStr, BaseModel, EmailStr, Field
 from passlib.context import CryptContext
 from datetime import datetime
@@ -757,3 +757,40 @@ def eliminar_evaluacion(evaluacion_id: int, db: Session = Depends(get_db)):
     db.delete(evaluacion)
     db.commit()
     return {"detail": f"Evaluación '{evaluacion.nombre}' eliminada correctamente"}
+
+
+class MejorIntentoOut(BaseModel):
+    id_unidad: int
+    nivel_maximo: int
+    puntaje_maximo: int
+
+    class Config:
+        orm_mode = True
+
+@app.get("/mejor_intento/{id_usuario}/{id_unidad}", response_model=MejorIntentoOut)
+def obtener_mejor_intento(id_usuario: int, id_unidad: int, db: Session = Depends(get_db)):
+    # Paso 1: Buscar el nivel más alto alcanzado por ese usuario en esa unidad
+    nivel_maximo = (
+        db.query(func.max(IntentoEvaluacion.nivel_al_momento))
+        .filter(IntentoEvaluacion.id_usuario == id_usuario,
+                IntentoEvaluacion.id_unidad == id_unidad)
+        .scalar()
+    )
+
+    if not nivel_maximo:
+        raise HTTPException(status_code=404, detail="No existen intentos para este usuario en esta unidad")
+
+    # Paso 2: Buscar el mayor puntaje dentro de ese nivel
+    puntaje_maximo = (
+        db.query(func.max(IntentoEvaluacion.puntaje_obtenido))
+        .filter(IntentoEvaluacion.id_usuario == id_usuario,
+                IntentoEvaluacion.id_unidad == id_unidad,
+                IntentoEvaluacion.nivel_al_momento == nivel_maximo)
+        .scalar()
+    )
+
+    return MejorIntentoOut(
+        id_unidad=id_unidad,
+        nivel_maximo=nivel_maximo,
+        puntaje_maximo=puntaje_maximo
+    )

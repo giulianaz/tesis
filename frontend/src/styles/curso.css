@@ -1650,8 +1650,14 @@ body.dark-mode .evaluacion-card {
 .actividad-content {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
+  align-items: flex-start; /* para que el bloque izquierdo crezca hacia abajo */
+  flex-wrap: nowrap; /* evita que los botones bajen */
+  gap: 15px;
+}
+
+.actividad-info {
+  flex: 1; /* ocupa todo el espacio disponible */
+  min-width: 0; /* importante para que el texto se ajuste */
 }
 
 .actividad-nombre {
@@ -1668,6 +1674,8 @@ body.dark-mode .actividad-nombre {
   font-size: 14px;
   color: #555;
   margin-bottom: 5px;
+  word-wrap: break-word; /* evita que palabras largas rompan el layout */
+  overflow-wrap: anywhere;
 }
 body.dark-mode .actividad-descripcion {
   color: #ccc;
@@ -1678,6 +1686,14 @@ body.dark-mode .actividad-descripcion {
   font-weight: 500;
   color: #6C00AE;
   margin-bottom: 5px;
+}
+
+.evaluacion-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0; /* evita que los botones se encojan */
 }
 
 /* Botón iniciar evaluación */

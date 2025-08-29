@@ -52,7 +52,7 @@ class Unidad(Base):
     corpus = relationship("Corpus", back_populates="unidad", cascade="all, delete-orphan")
     evaluaciones = relationship("Evaluacion", back_populates="unidad", cascade="all, delete-orphan")
     progresos = relationship("Progreso", back_populates="unidad", cascade="all, delete-orphan")
-
+    intentos = relationship("IntentoEvaluacion", back_populates="unidad", cascade="all, delete-orphan")  # 👈 nueva relación
 # Tabla corpus
 class Corpus(Base):
     __tablename__ = "corpus"
@@ -142,6 +142,8 @@ class IntentoEvaluacion(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     id_evaluacion = Column(Integer, ForeignKey("evaluacion.id", ondelete="CASCADE"), nullable=False)
     id_usuario = Column(Integer, ForeignKey("usuario.id", ondelete="CASCADE"), nullable=False)
+    id_unidad = Column(Integer, ForeignKey("unidad.id", ondelete="CASCADE"), nullable=False)  # 👈 clave foránea nueva
+
     puntaje_obtenido = Column(Integer, nullable=False)
     nivel_al_momento = Column(Integer, nullable=False)
     fecha = Column(DateTime, default=datetime.datetime.utcnow)
@@ -149,6 +151,7 @@ class IntentoEvaluacion(Base):
 
     evaluacion = relationship("Evaluacion", back_populates="intentos")
     usuario = relationship("Usuario", back_populates="intentos")
+    unidad = relationship("Unidad", back_populates="intentos")  # 👈 relación hacia Unidad
 
 class Respuesta(Base):
     __tablename__ = "respuesta"

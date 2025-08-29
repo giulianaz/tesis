@@ -22,6 +22,8 @@ const Curso = () => {
   const [nivelSeleccionado, setNivelSeleccionado] = useState("1"); // Por defecto Fácil
   const [creandoEvaluacion, setCreandoEvaluacion] = useState(false);
   const [corpusUnidad, setCorpusUnidad] = useState(null);
+  const [mejorIntento, setMejorIntento] = useState(null);
+
 
 
   // Cargar curso y unidades
@@ -126,6 +128,31 @@ const Curso = () => {
 
   fetchCorpus();
 }, [selectedUnidad]);
+
+useEffect(() => {
+  if (!selectedUnidad) return;
+
+  const usuario = JSON.parse(localStorage.getItem("usuario"));
+  if (!usuario) return;
+
+  const fetchMejorIntento = async () => {
+    try {
+      const res = await fetch(`http://localhost:8000/mejor_intento/${usuario.id}/${selectedUnidad}`);
+      if (!res.ok) {
+        setMejorIntento(null); // si no hay intento, vuelve a null
+        return;
+      }
+      const data = await res.json();
+      setMejorIntento(data);
+    } catch (err) {
+      console.error("Error al traer mejor intento:", err);
+      setMejorIntento(null);
+    }
+  };
+
+  fetchMejorIntento();
+}, [selectedUnidad]);
+
 
   const handleUnidadClick = (unidadId) => {
     setSelectedUnidad(unidadId);
@@ -415,15 +442,29 @@ const handleEliminarEvaluacion = async (evaluacionId) => {
         <div className="modal-evaluacion-backdrop">
           <div className="modal-evaluacion">
             <h3>Generar nueva evaluación</h3>
-            <p>Se generará una evaluación en base al material de clases subido para esta unidad. 
-              El nivel se recomienda según tu desempeño anterior.</p>
+            <p>Se generará una evaluación en base al material de clases subido para esta unidad.
+              El nivel se recomienda según tu desempeño anterior.
+              Si algunos niveles aparecen deshabilitados, es porque aún no cumples con los requisitos necesarios para acceder a ellos.</p>
 
             <label>Nivel de la evaluación:</label>
-            <select value={nivelSeleccionado} onChange={(e) => setNivelSeleccionado(e.target.value)}>
-              <option value="1">Fácil</option>
-              <option value="2">Medio</option>
-              <option value="3">Difícil</option>
-            </select>
+              <select
+                value={nivelSeleccionado}
+                onChange={(e) => setNivelSeleccionado(e.target.value)}
+              >
+                <option value="1">Fácil</option>
+                <option
+                  value="2"
+                  disabled={!mejorIntento || (mejorIntento.nivel_maximo < 1 || (mejorIntento.nivel_maximo === 1 && mejorIntento.puntaje_maximo < 70))}
+                >
+                  Medio
+                </option>
+                <option
+                  value="3"
+                  disabled={!mejorIntento || (mejorIntento.nivel_maximo < 2 || (mejorIntento.nivel_maximo === 2 && mejorIntento.puntaje_maximo < 70))}
+                >
+                  Difícil
+                </option>
+              </select>
 
             <div className="modal-buttons">
               <button onClick={handleCrearEvaluacion} disabled={creandoEvaluacion}>

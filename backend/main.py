@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from database import engine, Base, get_db
 from crud import crear_usuario, obtener_usuario_por_correo, login_usuario
 from typing import Optional
-from models import Curso, Unidad, Usuario, Evaluacion, Alternativa, VF, Desarrollo, IntentoEvaluacion, Corpus
+from models import Curso, Unidad, Usuario, Evaluacion, Alternativa, VF, Desarrollo, IntentoEvaluacion, Corpus, Respuesta
 from typing import List
 from sqlalchemy import select, func
 from pydantic import EmailStr, BaseModel, EmailStr, Field
@@ -12,8 +12,11 @@ from passlib.context import CryptContext
 from datetime import datetime
 import sys
 import os
+import re
+from typing import Dict
+from re import findall
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-from API.API import crear_assistant, crear_vector, subir_archivo, generar_preguntas, borrar_assistant, borrar_vector, subir_archivo_a_vector, borrar_archivo, generar_preguntas, interpretar_mensajes, interpretar_mensaje_separado
+from API.API import crear_assistant, crear_vector, subir_archivo, generar_preguntas, borrar_assistant, borrar_vector, subir_archivo_a_vector, borrar_archivo, generar_preguntas, interpretar_mensajes, interpretar_mensaje_separado, corregir_evaluacion
 
 from API.API import client, instrucciones, modelo
 
@@ -793,4 +796,218 @@ def obtener_mejor_intento(id_usuario: int, id_unidad: int, db: Session = Depends
         id_unidad=id_unidad,
         nivel_maximo=nivel_maximo,
         puntaje_maximo=puntaje_maximo
+    )
+
+
+from pydantic import BaseModel
+
+# ----------------------
+# SCHEMAS DE ENTRADA
+# ----------------------
+class RespuestaIn(BaseModel):
+    id_pregunta: int
+    tipo: str              # "vf", "alternativa", "desarrollo"
+    enunciado: str
+    respuesta_usuario: str
+    correcta: str | None = None  # solo para vf/alternativas
+
+class EnvioEvaluacionIn(BaseModel):
+    id_evaluacion: int
+    id_usuario: int
+    respuestas: List[RespuestaIn]
+
+# ----------------------
+# ENDPOINT
+# ----------------------
+@app.post("/evaluacion/{evaluacion_id}/responder")
+async def responder_evaluacion(
+    evaluacion_id: int,
+    data: EnvioEvaluacionIn,
+    db: Session = Depends(get_db)
+):
+    # 1️⃣ Validar evaluación
+    evaluacion = db.query(Evaluacion).filter(Evaluacion.id == evaluacion_id).first()
+    if not evaluacion:
+        raise HTTPException(status_code=404, detail="Evaluación no encontrada")
+
+    if not evaluacion.unidad or not evaluacion.unidad.assistant_id:
+        raise HTTPException(status_code=400, detail="Unidad o assistant_id no configurados")
+
+    assistant_id = evaluacion.unidad.assistant_id  # ✅ obtener de la unidad
+
+    # 2️⃣ Guardar respuestas individuales y obtener la correcta
+    respuestas_db = []
+    for r in data.respuestas:
+        correcta = None
+        if r.tipo == "alternativa":
+            alt = db.query(Alternativa).filter(Alternativa.id == r.id_pregunta).first()
+            correcta = alt.correcta if alt else None
+        elif r.tipo == "vf":
+            vf = db.query(VF).filter(VF.id == r.id_pregunta).first()
+            correcta = vf.correcta if vf else None
+        # Para desarrollo dejamos correcta=None
+
+        # Guardar en la base de datos
+        nueva = Respuesta(
+            id_usuario=data.id_usuario,
+            id_evaluacion=evaluacion.id,
+            tipo_pregunta=r.tipo,
+            id_pregunta=r.id_pregunta,
+            respuesta_texto=r.respuesta_usuario,
+            correcta=correcta
+        )
+        db.add(nueva)
+
+        # Preparar para la corrección
+        respuestas_db.append({
+            "id": r.id_pregunta,
+            "tipo": r.tipo,
+            "enunciado": r.enunciado,
+            "respuesta_usuario": r.respuesta_usuario,
+            "correcta": correcta
+        })
+
+    db.commit()
+
+    # 3️⃣ Llamar a la corrección
+    resultado = await corregir_evaluacion(
+        assistant_id=assistant_id,
+        respuestas=respuestas_db
+    )
+
+    # 4️⃣ Insertar intento de evaluación
+    intento = IntentoEvaluacion(
+        id_evaluacion=evaluacion.id,
+        id_usuario=data.id_usuario,
+        id_unidad=evaluacion.id_unidad,
+        puntaje_obtenido=resultado["cumplimiento"],
+        nivel_al_momento=evaluacion.nivel,
+        fecha=datetime.utcnow(),
+        retroalimentacion="\n".join(
+            [f"id pregunta: {retro['id_desarrollo']} - Retroalimentacion: {retro['retroalimentacion']}" 
+             for retro in resultado["retroalimentaciones"]]
+        )
+    )
+    db.add(intento)
+    db.commit()
+    db.refresh(intento)
+
+    return {
+        "id_intento": intento.id,
+        "puntaje": intento.puntaje_obtenido,
+        "retroalimentacion": intento.retroalimentacion
+    }
+
+class AlternativaOut(BaseModel):
+    enunciado: str
+    opciones: Dict[str, str]  # A, B, C, D
+    correcta: str
+    respuesta_usuario: str = ""
+
+class VFOut(BaseModel):
+    enunciado: str
+    correcta: str
+    respuesta_usuario: str = ""
+
+class DesarrolloOut(BaseModel):
+    enunciado: str
+    respuesta_usuario: str = ""
+    retroalimentacion: str = ""
+
+class PreguntasEvaluacionSimpleOut(BaseModel):
+    alternativas: List[AlternativaOut] = []
+    vf: List[VFOut] = []
+    desarrollo: List[DesarrolloOut] = []
+
+class PreguntasEvaluacionSimpleConCursoOut(PreguntasEvaluacionSimpleOut):
+    id_curso: int
+
+
+@app.get("/preguntas/evaluacion/simple/{id_evaluacion}", response_model=PreguntasEvaluacionSimpleConCursoOut)
+def obtener_preguntas_simple(id_evaluacion: int, usuario_id: int = Query(...), db: Session = Depends(get_db)):
+    evaluacion = db.query(Evaluacion).filter(Evaluacion.id == id_evaluacion).first()
+    if not evaluacion:
+        raise HTTPException(status_code=404, detail="Evaluación no encontrada")
+
+    # Obtener id_curso desde la unidad
+    id_curso = evaluacion.unidad.id_curso
+
+    # Obtener respuestas del usuario
+    respuestas_usuario = db.query(Respuesta).filter(
+        Respuesta.id_evaluacion == id_evaluacion,
+        Respuesta.id_usuario == usuario_id
+    ).all()
+    respuestas_dict = {(str(r.tipo_pregunta).lower(), r.id_pregunta): r for r in respuestas_usuario}
+
+    # Obtener intento para retroalimentación
+    intento = db.query(IntentoEvaluacion).filter(
+        IntentoEvaluacion.id_evaluacion == id_evaluacion,
+        IntentoEvaluacion.id_usuario == usuario_id
+    ).first()
+
+    retro_dict = {}
+    if intento and intento.retroalimentacion:
+        matches = re.findall(
+            r"id pregunta:\s*(\d+)\s*-\s*Retroalimentacion:\s*(.+?)(?=id pregunta: \d+ - Retroalimentacion:|$)",
+            intento.retroalimentacion,
+            flags=re.DOTALL | re.IGNORECASE
+        )
+        for match in matches:
+            pregunta_id = int(match[0])
+            retro_text = match[1]
+            # Eliminar 'Puntaje: X'
+            retro_text = re.sub(r"Puntaje:\s*\d+\s*", "", retro_text, flags=re.IGNORECASE)
+            # Eliminar 【x:x†source】
+            retro_text = re.sub(r"【\d+:\d+†source】", "", retro_text)
+            retro_dict[pregunta_id] = retro_text.strip()
+
+    # Alternativas
+    alternativas = []
+    for a in evaluacion.alternativas:
+        r = respuestas_dict.get(("alternativa", a.id))
+        respuesta_usuario = r.respuesta_texto.upper() if r and r.respuesta_texto else ""
+        correcta = a.correcta.upper() if a.correcta else ""
+        opciones = {
+            "A": a.respuesta_a or "",
+            "B": a.respuesta_b or "",
+            "C": a.respuesta_c or "",
+            "D": a.respuesta_d or ""
+        }
+        alternativas.append(AlternativaOut(
+            enunciado=a.enunciado,
+            opciones=opciones,
+            correcta=correcta,
+            respuesta_usuario=respuesta_usuario
+        ))
+
+    # Verdadero/Falso
+    vf = []
+    for v in evaluacion.verdaderofalsos:
+        r = respuestas_dict.get(("vf", v.id))
+        respuesta_usuario = r.respuesta_texto.upper() if r and r.respuesta_texto else ""
+        correcta = v.correcta.upper() if v.correcta else ""
+        vf.append(VFOut(
+            enunciado=v.enunciado,
+            correcta=correcta,
+            respuesta_usuario=respuesta_usuario
+        ))
+
+    # Desarrollo
+    desarrollo = []
+    for d in evaluacion.desarrollos:
+        r = respuestas_dict.get(("desarrollo", d.id))
+        respuesta_usuario = r.respuesta_texto if r and r.respuesta_texto else ""
+        retroalimentacion = retro_dict.get(d.id, "")
+        desarrollo.append(DesarrolloOut(
+            enunciado=d.enunciado,
+            respuesta_usuario=respuesta_usuario,
+            retroalimentacion=retroalimentacion
+        ))
+
+    # Devolver todo + id_curso
+    return PreguntasEvaluacionSimpleConCursoOut(
+        alternativas=alternativas,
+        vf=vf,
+        desarrollo=desarrollo,
+        id_curso=id_curso
     )

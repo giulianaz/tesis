@@ -161,7 +161,7 @@ class Respuesta(Base):
     tipo_pregunta = Column(Enum("vf", "alternativa", "desarrollo", name="tipo_pregunta"), nullable=False)
     id_pregunta = Column(Integer, nullable=False)  # ID de la pregunta, se valida según tipo_pregunta
     respuesta_texto = Column(Text, nullable=True)  # Respuesta escrita (para desarrollo) o vacío en otras
-    correcta = Column(Integer, nullable=True)  # Opcional: para almacenar si fue correcta o puntaje obtenido
+    correcta = Column(String(5), nullable=True)  # Cambiado a String para guardar 'a','b','c','d' o 'true','false'
     fecha = Column(DateTime, default=datetime.datetime.utcnow)
 
     usuario = relationship("Usuario")

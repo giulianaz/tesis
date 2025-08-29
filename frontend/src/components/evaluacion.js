@@ -9,60 +9,129 @@ const Evaluacion = () => {
   const navigate = useNavigate();
   const [evaluacion, setEvaluacion] = useState(null);
   const [hayIntento, setHayIntento] = useState(false);
-  const [mensaje, setMensaje] = useState("");
   const [cursoId, setCursoId] = useState(null);
+  const [enviando, setEnviando] = useState(false);
 
-  useEffect(() => {
-    const verificarUsuario = async () => {
-      const usuarioStr = localStorage.getItem("usuario");
-      if (!usuarioStr) {
-        navigate("/login");
+useEffect(() => {
+  const verificarUsuario = async () => {
+    const usuarioStr = localStorage.getItem("usuario");
+    if (!usuarioStr) {
+      navigate("/login");
+      return;
+    }
+    const usuario = JSON.parse(usuarioStr);
+
+    try {
+      // 1️⃣ Verificar si hay intento
+      const intentoRes = await axios.get(`http://localhost:8000/intento_evaluacion/${idEvaluacion}`, {
+        params: { usuario_id: usuario.id }
+      });
+
+      if (intentoRes.status === 200) {
+        setHayIntento(true);
+
+        // ✅ Si hay intento, traemos las respuestas usando el endpoint simple
+        const evalRes = await axios.get(
+          `http://localhost:8000/preguntas/evaluacion/simple/${idEvaluacion}`,
+          { params: { usuario_id: usuario.id } }
+        );
+        setEvaluacion(evalRes.data);
+        setCursoId(evalRes.data.id_curso); // <--- agrega esto
+
         return;
       }
-      const usuario = JSON.parse(usuarioStr);
 
-      try {
-        // 1️⃣ Verificar si hay intento
-        const intentoRes = await axios.get(`http://localhost:8000/intento_evaluacion/${idEvaluacion}`, {
-          params: { usuario_id: usuario.id }
-        });
+    } catch (err) {
+      // No hay intento, continuamos con flujo normal
+    }
 
-        if (intentoRes.status === 200) {
-          setHayIntento(true);
-          setMensaje("Ya completaste esta evaluación");
-          return;
-        }
-      } catch (err) {
-        // No hay intento, continuamos
-      }
+    try {
+      // 2️⃣ Traer preguntas completas (con respuestas del usuario si ya respondió)
+      const evalRes = await axios.get(
+        `http://localhost:8000/preguntas/evaluacion/${idEvaluacion}`,
+        { params: { usuario_id: usuario.id } }
+      );
+      setEvaluacion(evalRes.data);
+      setCursoId(evalRes.data.id_curso);
+    } catch (err) {
+      console.error("Error al cargar evaluación:", err);
+      alert("No tienes acceso a esta evaluación.");
+      navigate("/");
+    }
+  };
 
-      try {
-        // 2️⃣ Traer preguntas completas
-        const evalRes = await axios.get(`http://localhost:8000/preguntas/evaluacion/${idEvaluacion}`, {
-          params: { usuario_id: usuario.id } // backend debe validar inscripción
-        });
+  if (idEvaluacion) verificarUsuario();
+}, [idEvaluacion, navigate]);
 
-        if (evalRes.data.error) {
-          alert("No estás inscrito en este curso.");
-          navigate("/");
-          return;
-        }
 
-        setEvaluacion(evalRes.data);
-        setCursoId(evalRes.data.id_curso);
-      } catch (err) {
-        console.error("Error al cargar evaluación:", err);
-        alert("No tienes acceso a esta evaluación.");
-        navigate("/");
-      }
-    };
-
-    if (idEvaluacion) verificarUsuario();
-  }, [idEvaluacion, navigate]);
-
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    alert("Por ahora no se hace nada al enviar 😅");
+
+    const usuarioStr = localStorage.getItem("usuario");
+    if (!usuarioStr) {
+      alert("Debes iniciar sesión");
+      navigate("/login");
+      return;
+    }
+    const usuario = JSON.parse(usuarioStr);
+
+    const respuestas = [];
+
+    evaluacion.preguntas_alternativas?.forEach((p) => {
+      const selected = document.querySelector(`input[name="alt_${p.id}"]:checked`);
+      respuestas.push({
+        id_pregunta: p.id,
+        tipo: "alternativa",
+        enunciado: p.enunciado,
+        respuesta_usuario: selected ? selected.value : "",
+        correcta: p.correcta
+      });
+    });
+
+    evaluacion.preguntas_vf?.forEach((p) => {
+      const selected = document.querySelector(`input[name="vf_${p.id}"]:checked`);
+      respuestas.push({
+        id_pregunta: p.id,
+        tipo: "vf",
+        enunciado: p.enunciado,
+        respuesta_usuario: selected ? selected.value : "",
+        correcta: p.correcta
+      });
+    });
+
+    evaluacion.preguntas_desarrollo?.forEach((p) => {
+      const textarea = document.querySelector(`textarea[name="des_${p.id}"]`);
+      respuestas.push({
+        id_pregunta: p.id,
+        tipo: "desarrollo",
+        enunciado: p.enunciado,
+        respuesta_usuario: textarea ? textarea.value : "",
+        correcta: null
+      });
+    });
+
+    try {
+      setEnviando(true);
+
+      const res = await axios.post(
+        `http://localhost:8000/evaluacion/${idEvaluacion}/responder`,
+        {
+          id_evaluacion: Number(idEvaluacion),
+          id_usuario: usuario.id,
+          respuestas: respuestas
+        }
+      );
+
+      if (res.status === 200) {
+        alert(`Evaluación enviada! Puntaje: ${res.data.puntaje}\nRetroalimentación disponible.`);
+        window.location.reload();
+      }
+    } catch (err) {
+      console.error("Error al enviar evaluación:", err);
+      alert("Ocurrió un error al enviar la evaluación.");
+    } finally {
+      setEnviando(false);
+    }
   };
 
   const nivelTexto = (nivel) => {
@@ -87,9 +156,95 @@ const Evaluacion = () => {
 
       <div className="eva-container-home">
         <div className="eva-container-body">
-          {hayIntento ? (
-            <p className="eva-mensaje">{mensaje}</p>
-          ) : !evaluacion ? (
+        {hayIntento ? (
+          <>
+
+            {evaluacion && (
+              <>
+                <h2 className="eva-title">Revisión</h2>
+                {evaluacion.descripcion && <p className="eva-descripcion">{evaluacion.descripcion}</p>}
+                {evaluacion.nivel && <p className="eva-nivel">Nivel: {nivelTexto(evaluacion.nivel)}</p>}
+{/* ---------------- Alternativas ---------------- */}
+{evaluacion.alternativas.map((p, index) => (
+  <div key={`alt_card_${index}`} className="eva-pregunta-card">
+    <p className="eva-enunciado">{index + 1}. {p.enunciado}</p>
+    {Object.entries(p.opciones).map(([key, opcion]) => (
+      <label 
+        key={`alt_${index}_${key}`} 
+        className={`eva-label ${
+          p.correcta.toUpperCase() === key.toUpperCase() ? "correcta" : 
+          p.respuesta_usuario.toUpperCase() === key.toUpperCase() && p.correcta.toUpperCase() !== key.toUpperCase() ? "incorrecta" : ""
+        }`}
+      >
+        <input
+          type="radio"
+          name={`alt_${p.id || index}`} // nombre único por pregunta
+          value={key}
+          checked={p.respuesta_usuario.toUpperCase() === key.toUpperCase()}
+          disabled
+        />
+        {opcion} {p.correcta.toUpperCase() === key.toUpperCase() && "✔"} {p.respuesta_usuario.toUpperCase() === key.toUpperCase() && p.correcta.toUpperCase() !== key.toUpperCase() && "✖"}
+      </label>
+    ))}
+  </div>
+))}
+
+{/* ---------------- Verdadero/Falso ---------------- */}
+{evaluacion.vf?.length > 0 && (
+  <>
+    <h3 className="eva-subtitle">Preguntas Verdadero/Falso</h3>
+    {evaluacion.vf.map((p, index) => (
+      <div key={`vf_card_${index}`} className="eva-pregunta-card">
+        <p className="eva-enunciado">{index + 1}. {p.enunciado}</p>
+        {["V", "F"].map((v) => (
+          <label 
+            key={`vf_${index}_${v}`} 
+            className={`eva-label ${
+              p.correcta.toUpperCase() === v ? "correcta" : 
+              p.respuesta_usuario.toUpperCase() === v && p.correcta.toUpperCase() !== v ? "incorrecta" : ""
+            }`}
+          >
+            <input
+              type="radio"
+              name={`vf_${p.id || index}`} // nombre único por pregunta
+              value={v}
+              checked={p.respuesta_usuario.toUpperCase() === v}
+              disabled
+            />
+            {v === "V" ? "Verdadero" : "Falso"} {p.correcta.toUpperCase() === v && "✔"} {p.respuesta_usuario.toUpperCase() === v && p.correcta.toUpperCase() !== v && "✖"}
+          </label>
+        ))}
+      </div>
+    ))}
+  </>
+)}
+
+
+                {/* ---------------- Desarrollo ---------------- */}
+                {evaluacion.desarrollo?.length > 0 && (
+                  <>
+                    <h3 className="eva-subtitle">Preguntas de Desarrollo</h3>
+                    {evaluacion.desarrollo.map((p, index) => (
+                      <div key={p.id} className="eva-pregunta-card">
+                        <p className="eva-enunciado">{index + 1}. {p.enunciado}</p>
+                        <textarea
+                          className="eva-textarea"
+                          rows="4"
+                          cols="50"
+                          value={p.respuesta_usuario || ""}
+                          disabled
+                        ></textarea>
+                        {p.retroalimentacion && (
+                          <p className="eva-retroalimentacion"><strong>Retroalimentación:</strong> {p.retroalimentacion}</p>
+                        )}
+                      </div>
+                    ))}
+                  </>
+                )}
+              </>
+            )}
+          </>
+        ) : !evaluacion ? (
             <p className="eva-cargando">Cargando preguntas...</p>
           ) : (
             <>
@@ -153,6 +308,14 @@ const Evaluacion = () => {
                       </div>
                     ))}
                   </>
+                )}
+
+                {/* Spinner mientras se envía */}
+                {enviando && (
+                  <div className="eva-cargando">
+                    <span>Enviando respuestas...</span>
+                    <div className="spinner"></div>
+                  </div>
                 )}
 
                 <button type="submit" className="eva-submit">Enviar</button>

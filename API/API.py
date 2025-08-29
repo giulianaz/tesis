@@ -193,7 +193,7 @@ def borrar_archivo(file_id: str, vector_id: str):
 
 # Generación de preguntas
 async def generar_preguntas(assistant_id: str, vf: str, desarrollo: str, alternativas: str, dificultad: str):
-    prompt = f'''Generame preguntas segun su tipo que seran indicadas a continuacion. 
+    prompt = f'''Generame preguntas segun su tipo que seran indicadas a continuacion.
         Las preguntas deben basarse exclusivamente en la información contenida en los archivos proporcionados en el vector_store, 
         pero sin mencionar los nombres de los documentos. 
         Cada pregunta debe abordar un concepto aprendido en los archivos. 
@@ -259,23 +259,37 @@ def interpretar_mensajes(messages):
             # and that 'text' has a 'value' attribute, print it
             return(content_item.text.value)
         
+import re
+
+import re
+
 def interpretar_mensaje_separado(mensaje_crudo: str):
     """
     Convierte el string crudo en un dict con:
-    nombre, descripcion y lista de preguntas (vf, desarrollo, alternativas)
+    - nombre
+    - descripcion
+    - lista de preguntas separadas por tipo (vf, desarrollo, alternativas)
     """
-    # Nombre
-    nombre_match = re.search(r"Nombre:\s*(.+)", mensaje_crudo)
-    nombre = nombre_match.group(1).strip() if nombre_match else f"Evaluacion"
 
-    # Descripción
-    descripcion_match = re.search(r"Descripcion:\s*(.+)", mensaje_crudo)
+    # ---------------- Nombre ----------------
+    nombre_match = re.search(r"Nombre:\s*(.+)", mensaje_crudo)
+    nombre = nombre_match.group(1).strip() if nombre_match else "Evaluacion"
+
+    # ---------------- Descripción ----------------
+    descripcion_match = re.search(
+        r"Descripcion:\s*(.+?)(?=(\nPregunta_vf:|\nPregunta_desarrollo:|\nPregunta_alternativas:|$))",
+        mensaje_crudo,
+        re.DOTALL
+    )
     descripcion = descripcion_match.group(1).strip() if descripcion_match else ""
 
     preguntas = []
 
-    # VF
-    vf_pattern = re.compile(r"Pregunta_vf:(.+?)Alternativa correcta:\s*([VF])", re.DOTALL)
+    # ---------------- Verdadero/Falso ----------------
+    vf_pattern = re.compile(
+        r"Pregunta_vf:\s*(.+?)\s*Alternativa correcta:\s*([VF])(?=(\nPregunta_vf:|\nPregunta_desarrollo:|\nPregunta_alternativas:|$))",
+        re.DOTALL | re.MULTILINE
+    )
     for match in vf_pattern.finditer(mensaje_crudo):
         preguntas.append({
             "tipo": "vf",
@@ -283,8 +297,12 @@ def interpretar_mensaje_separado(mensaje_crudo: str):
             "correcta": match.group(2).strip()
         })
 
-    # Desarrollo
-    des_pattern = re.compile(r"Pregunta_desarrollo:(.+?)Respuesta:\s*(.+)", re.DOTALL)
+    # ---------------- Desarrollo ----------------
+# ---------------- Desarrollo ----------------
+    des_pattern = re.compile(
+        r"Pregunta_desarrollo:\s*(.+?)\s*Respuesta:\s*(.+?)(?=\nPregunta_desarrollo:|\nPregunta_vf:|\nPregunta_alternativas:|$)",
+        re.DOTALL
+    )
     for match in des_pattern.finditer(mensaje_crudo):
         preguntas.append({
             "tipo": "desarrollo",
@@ -292,17 +310,23 @@ def interpretar_mensaje_separado(mensaje_crudo: str):
             "respuesta": match.group(2).strip()
         })
 
-    # Alternativas
-    alt_pattern = re.compile(r"Pregunta_alternativas:(.+?)Alternativa correcta:\s*([a-d])", re.DOTALL)
+
+    # ---------------- Alternativas ----------------
+    alt_pattern = re.compile(
+        r"Pregunta_alternativas:\s*(.+?)\s*Alternativa correcta:\s*([a-d])(?=(\nPregunta_desarrollo:|\nPregunta_vf:|\nPregunta_alternativas:|$))",
+        re.DOTALL | re.MULTILINE
+    )
     for match in alt_pattern.finditer(mensaje_crudo):
         enunciado_completo = match.group(1).strip()
         correcta = match.group(2).strip()
-        # Extraer opciones
         opciones = {}
+
+        # Extraer opciones a-d
         for letra in ['a', 'b', 'c', 'd']:
             op_match = re.search(rf"{letra}\)\s*(.+)", enunciado_completo)
             if op_match:
                 opciones[letra] = op_match.group(1).strip()
+
         # Limpiar enunciado de las opciones
         enunciado_limpio = re.split(r"(a\)|b\)|c\)|d\))", enunciado_completo)[0].strip()
         preguntas.append({
@@ -316,4 +340,72 @@ def interpretar_mensaje_separado(mensaje_crudo: str):
         "nombre": nombre,
         "descripcion": descripcion,
         "preguntas": preguntas
+    }
+
+
+
+async def corregir_evaluacion(assistant_id: str, respuestas: list, peso_desarrollo: float = 2.0):
+    """
+    Corrige una evaluación completa.
+    - respuestas: lista de dicts con {id, tipo, enunciado, respuesta_usuario, correcta}
+    - peso_desarrollo: multiplicador para el puntaje de desarrollo (por defecto 2)
+    Devuelve: % cumplimiento y retroalimentación de desarrollo.
+    """
+    retroalimentaciones = []
+
+    # Contar preguntas por tipo
+    total_vf_alt = sum(1 for r in respuestas if r["tipo"] in ["vf", "alternativa"])
+    total_desarrollo = sum(1 for r in respuestas if r["tipo"] == "desarrollo")
+
+    # Calcular puntaje máximo ponderado
+    max_puntos = total_vf_alt + total_desarrollo * peso_desarrollo
+    puntos_obtenidos = 0.0
+
+    for r in respuestas:
+        if r["tipo"] in ["vf", "alternativa"]:
+            if r.get("correcta") is not None and str(r["respuesta_usuario"]).strip().lower() == str(r["correcta"]).strip().lower():
+                puntos_obtenidos += 1  # cada VF/alt correcta = 1 punto
+
+        elif r["tipo"] == "desarrollo":
+            prompt = f"""
+            Evalúa la siguiente respuesta de un estudiante en base a los documentos del vector_store.
+            Pregunta: {r['enunciado']}
+            Respuesta del estudiante: {r['respuesta_usuario']}
+
+            Devuelve en este formato:
+            Puntaje: (0 a 100)
+            Retroalimentacion: texto plano breve sobre fortalezas y debilidades.
+            """
+            try:
+                thread = client.beta.threads.create(messages=[{"role": "user", "content": prompt}])
+                run = client.beta.threads.runs.create(thread_id=thread.id, assistant_id=assistant_id)
+
+                while run.status not in ["completed", "failed"]:
+                    run = client.beta.threads.runs.retrieve(thread_id=thread.id, run_id=run.id)
+                    await asyncio.sleep(1)
+
+                messages = client.beta.threads.messages.list(thread_id=thread.id)
+                feedback = interpretar_mensajes(messages)
+
+                # Extraer puntaje de desarrollo (0-100)
+                match = re.search(r"Puntaje:\s*(\d+)", feedback)
+                puntaje_desarrollo = int(match.group(1)) if match else 0
+
+                # Convertir a escala de peso_desarrollo
+                puntos_obtenidos += (puntaje_desarrollo / 100) * peso_desarrollo
+
+                retroalimentaciones.append({
+                    "id_desarrollo": r["id"],
+                    "retroalimentacion": feedback
+                })
+
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=f"Error evaluando desarrollo: {e}")
+
+    # Cumplimiento global en %
+    cumplimiento = int((puntos_obtenidos / max_puntos) * 100) if max_puntos > 0 else 0
+
+    return {
+        "cumplimiento": cumplimiento,
+        "retroalimentaciones": retroalimentaciones
     }

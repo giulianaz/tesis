@@ -70,10 +70,15 @@ const handleAgregarCorpus = async (event) => {
   setIsUploadingNew(true);
 
   try {
-    // Espera 1.5s para simular el spinner
+    // Obtener usuario desde localStorage
+    const usuarioStr = localStorage.getItem("usuario");
+    if (!usuarioStr) throw new Error("Usuario no encontrado en sesión");
+    const usuario = JSON.parse(usuarioStr);
+
+    // Espera 1.5s para simular spinner
     await new Promise(resolve => setTimeout(resolve, 1500));
 
-    // Subir archivos al backend
+    // Subir archivos uno por uno
     for (const file of selectedFiles) {
       const formData = new FormData();
       formData.append("archivo", file);
@@ -83,21 +88,28 @@ const handleAgregarCorpus = async (event) => {
       });
     }
 
-    // Actualizar lista de corpus después de subir
-    const response = await axios.get(`http://localhost:8000/corpus/unidad/${unidadId}`);
-    const corpusConIds = response.data.corpus.map(c => ({
+    // Actualizar lista de corpus después de subir, incluyendo usuario_id
+    const response = await axios.get(`http://localhost:8000/corpus/unidad/${unidadId}`, {
+      params: { usuario_id: usuario.id }
+    });
+
+    const corpusConIds = (response.data.corpus || []).map(c => ({
       ...c,
-      vector_id: response.data.vector_id || null
+      vector_id: c.vector_id || null
     }));
     setCorpus(corpusConIds);
 
-    // ⚡ Reasignar cursoId para que la flecha de volver siga apareciendo
+    // Reasignar cursoId para la flecha de volver
     setCursoId(response.data.curso_id);
 
-    alert(`Archivo(s) "${selectedFiles.map(f => f.name).join(', ')}" subido.`);
+    alert(`Archivo(s) "${selectedFiles.map(f => f.name).join(', ')}" subido(s).`);
     setSelectedFiles([]);
     setShowCrearCorpusForm(false);
     setSuccessMessage('Archivo(s) subido(s) correctamente.');
+
+    // ✅ Línea agregada: refrescar la página para que se actualicen los IDs
+    window.location.reload();
+
   } catch (error) {
     console.error("Error al subir archivos:", error);
     setSuccessMessage("Error al subir los archivos.");
@@ -105,6 +117,7 @@ const handleAgregarCorpus = async (event) => {
     setIsUploadingNew(false);
   }
 };
+
 
 
   const handleEliminarCorpus = async (corpusId, fileId, vectorId) => {

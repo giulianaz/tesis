@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from 'react-router-dom';
 import "../styles/navbar.css"; // Puedes crear estilos simples para el navbar
-import Logo from '../assets/logo.png';
+import Logo from '../assets/logo2.png';
 
 
 const Navbar = () => {
@@ -27,7 +27,6 @@ const Navbar = () => {
             <div className="header-left">
                 <Link to="/" className='logo-link'>
                     <img src={Logo} alt="LOGO" className="logo-image" />
-                    <span className="header-title">AI Want 2 Teach</span>
                 </Link>
             </div>
 

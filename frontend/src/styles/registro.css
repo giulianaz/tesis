@@ -30,7 +30,8 @@ html, body {
 /* Título del formulario */
 .register-title {
   text-align: center;
-  margin-bottom: 40px;
+  margin-bottom: 20px;
+  margin-top: -10px;
   font-size: 1.8rem; /* Ajusta el tamaño de la fuente del título */
 }
 
@@ -51,13 +52,11 @@ html, body {
 
 /* Estilo del logo */
 .register-logo {
-  width: 200px;
+  width: 250px;
   height: auto;
   display: block;
   margin: 0 auto; /* Centra horizontalmente */
-  margin-bottom: 10px;
   border: 1px solid #ffffff6b;
-  border-radius: 50%;
 }
 
 
@@ -104,12 +103,12 @@ html, body {
 }
 
 .register-login a {
-  color: #6A0DAD;
+  color: rgb(64, 121, 140);
   text-decoration: none;
 }
 
 .register-login a:hover {
-  color: #510586;
+  color: rgb(41, 78, 91);
   text-decoration: underline;
 }
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import "../styles/registro.css";
 import { useNavigate, Link } from 'react-router-dom';
-import Logo from '../assets/logo.png';
+import Logo from '../assets/estudia.png';
 
 
 const Registro = () => {

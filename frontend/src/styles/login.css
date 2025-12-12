@@ -37,6 +37,7 @@ html, body {
   flex-direction: column; /* Asegúrate de que el contenido esté alineado verticalmente */ /* Centra verticalmente */
   align-items: flex-start; /* Centra horizontalmente */
   background-image: url('../assets/background-login.png');
+  filter: sepia(1) saturate(100%) hue-rotate(130deg); /* ejemplo */
   background-size: 100% 100%; /* La imagen cubre dos veces el ancho y todo el alto */
   background-position: left center; /* Coloca la imagen en la mitad izquierda */
   background-repeat: no-repeat; /* Evita que la imagen se repita */
@@ -71,7 +72,7 @@ html, body {
 }
 
 .login-title {
-  color: #39003E;
+  color: rgb(11, 32, 39);
   margin-bottom: 2rem;
   font-size: 36px; /* Aumenta el tamaño del título */
   font-weight: 600; /* Aplica el peso de la fuente Poppins */
@@ -86,7 +87,7 @@ html, body {
 .welcome-text{
   font-size: 46px;
   font-weight: 600;
-  margin-top: 2rem;
+  margin-top: 5rem;
   margin-left: 1rem;
   line-height: 2;
 }
@@ -98,7 +99,7 @@ html, body {
 }
 
 .form-group label {
-  color: #39003E;
+  color: rgb(11, 32, 39);
   margin-bottom: 0.5rem;
   display: block;
   font-weight: 600;
@@ -113,21 +114,7 @@ input[type="email"], input[type="password"] {
   font-size: 16px;
 }
 
-button[type="submit"] {
-  width: 100%;
-  padding: 0.8rem;
-  background-color: #6A0DAD;
-  color: white;
-  border: none;
-  border-radius: 5px;
-  font-size: 16px;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-}
 
-button[type="submit"]:hover {
-  background-color: #590b90;
-}
 
 .forgot-password {
   display: block;
@@ -151,7 +138,7 @@ button[type="submit"]:hover {
 }
 
 .registro {
-  color: #6C00AE;
+  color: rgb(11, 32, 39);
   font-size: 14px;
   text-decoration: none;
   margin-top: 2rem;
@@ -207,6 +194,7 @@ button[type="submit"]:hover {
   width: 40px; /* Ajusta el tamaño de los logos */
   margin: 0 5px; /* Espaciado entre los logos */
   transition: transform 0.3s; /* Efecto al pasar el mouse */
+  filter: invert(1) saturate(40%) hue-rotate(2deg); /* ejemplo */
 }
 
 .social-logo:hover {
@@ -238,4 +226,25 @@ button[type="submit"]:hover {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+button[type="submit"] {
+  width: 100%;
+  padding: 0.8rem;
+  background-color: rgb(112, 169, 161);
+  color: white;
+  border: none;
+  border-radius: 5px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+button[type="submit"]:hover {
+  background-color: rgb(83, 126, 121);
+}
+
+.whiith{
+  margin-top: -40px;
+  color: #fff;
 }

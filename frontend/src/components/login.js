@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "../styles/login.css";
 import { useNavigate, Link } from 'react-router-dom';
-import Logo from '../assets/logo.png';
-import LogoEmpresa from '../assets/logo-empresa.png';
 import ig from '../assets/instagram.png';
 import mail from '../assets/mail.png';
 import linkedin from '../assets/linkedin.png';
@@ -56,14 +54,13 @@ const handleSubmit = async (e) => {
         <div className="login-container">
             <div className="login-left">
                 <div class="login-header">
-                <img src={Logo} alt="Logo" className="login-logo" />
-                <h2 class="login-title-text">AI Want 2 Teach</h2>
             </div>
-                <h1 className="welcome-text">¡Que gusto tenerte de vuelta!</h1>
+                <h1 className="welcome-text">Ingresa para continuar con tu formación</h1>
             </div>
             <div className="login-right">
                 <form className="login-form" onSubmit={handleSubmit}>
-                    <h2 className="login-title">Sign In</h2>
+                    <p className="whiith">Javier S2</p>
+                    <h2 className="login-title">Inicia Sesión</h2>
                     <div class="form-group">
                     <label for="email">Correo</label>
                     <input
@@ -84,7 +81,7 @@ const handleSubmit = async (e) => {
                       required
                     />
                     </div>
-                    <button type="submit">Iniciar Sesión</button>
+                    <button type="submit" className="login-btn">Iniciar Sesión</button>
                     {mensaje && <p className="login-message">{mensaje}</p>} {/* Aquí se muestra el mensaje */}
                     <Link to="/registro" className="registro">
                         ¿No tienes cuenta? ¡Regístrate!
@@ -93,8 +90,7 @@ const handleSubmit = async (e) => {
             </div>
         </div>
         <div class="footer">
-            <img src={LogoEmpresa} alt="LogoEmpresa" class="footer-logo" />
-            <p class="footer-text">created by Gohan & Lili's Code</p>
+            <p class="footer-text">Aprender, evaluar y mejorar</p>
         </div>
         <footer class="secondary-footer">
         <p>Contacto a soporte:</p>
